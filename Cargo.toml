@@ -1,0 +1,10 @@
+[package]
+name = "backtester"
+version = "0.1.0"
+authors = ["Carl Levasseur <carl.levasseur@protonmail.com>"]
+
+[dependencies]
+time = "0.1"
+chrono = { version = "0.4", features = ["serde", "rustc-serialize"] }
+csv = "1.0.0-beta.4"
+snowflake = "1.2"
