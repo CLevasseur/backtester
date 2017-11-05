@@ -1,40 +1,28 @@
+mod order_id;
+mod order_status;
+mod base_order;
+mod market_order;
+
+pub mod policy;
+
+pub use self::order_id::OrderId;
+pub use self::order_status::OrderStatus;
+pub use self::base_order::BaseOrder;
+pub use self::market_order::MarketOrder;
+
+use symbol::SymbolOhlcvSource;
+
 //extern crate snowflake;
 
 //use self::snowflake::ProcessUniqueId;
 //use symbol::Symbol;
 //use signal::Direction;
 
-//#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-//pub struct OrderId(ProcessUniqueId);
+pub trait Order<'symbol, Source: 'symbol + SymbolOhlcvSource> {
+    fn base(&self) -> &BaseOrder<'symbol, Source>;
+    fn base_mut(&mut self) -> &mut BaseOrder<'symbol, Source>;
+}
 
-//pub trait Order<'symbol> {
-    //fn base(&self) -> &BaseOrder<'symbol>;
-    //fn base_mut(&mut self) -> &mut BaseOrder<'symbol>;
-//}
-
-//pub struct BaseOrder<'symbol> {
-    //id: OrderId,
-    //symbol: &'symbol Symbol,
-    //direction: Direction,
-    //quantity: u32,
-    //status: OrderStatus
-//}
-
-//impl<'symbol> BaseOrder<'symbol> {
-
-    //pub fn id(&self) -> &OrderId {
-        //&self.id
-    //}
-
-    //pub fn quantity(&self) -> u32 {
-        //self.quantity
-    //}
-
-    //pub fn set_status(&mut self, status: OrderStatus) {
-        ////self.status = status;
-    //}
-
-//}
 
 
 //pub struct LimitOrder<'symbol> {

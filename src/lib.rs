@@ -1,5 +1,6 @@
 pub mod ohlcv;
 pub mod symbol;
-pub mod order;
+pub mod signal;
 pub mod direction;
+pub mod order;
 pub mod util;

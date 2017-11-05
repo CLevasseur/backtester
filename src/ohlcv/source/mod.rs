@@ -3,13 +3,16 @@ use std::fmt;
 use self::chrono::prelude::{DateTime, Utc};
 use ohlcv::Ohlcv;
 
-pub mod csv;
+mod null;
+mod csv;
+pub use self::null::NullOhlcvSource;
+pub use self::csv::CsvOhlcvSource;
 
 pub trait OhlcvSource {
     fn ohlcv(&self, date: &DateTime<Utc>) -> Result<Ohlcv, OhlcvSourceError>;
 }
 
-#[derive(Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub enum OhlcvSourceError {
     DateNotFound(DateTime<Utc>)
 }
