@@ -1,11 +1,15 @@
 use signal::Signal;
 use order::Order;
-use symbol::SymbolOhlcvSource;
 
 mod market_order_policy;
 pub use order::policy::market_order_policy::MarketOrderPolicy;
 
+#[derive(Clone, Eq, PartialEq, Hash, Debug)]
+pub enum OrderPolicyError {
+    IndicatorError
+}
+
 pub trait OrderPolicy {
-    fn create_order<'symbol, S: 'symbol + SymbolOhlcvSource>(&self, signal: &'symbol Signal<'symbol, S>) -> Box<Order<'symbol, S> + 'symbol>;
+    fn create_order<'symbol>(&self, signal: Signal<'symbol>) -> Result<Order<'symbol>, OrderPolicyError>;
 }
 

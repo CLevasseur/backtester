@@ -1,15 +1,17 @@
-use order::Order;
 use signal::Signal;
-use order::MarketOrder;
-use order::policy::OrderPolicy;
-use symbol::SymbolOhlcvSource;
+use order::{Order, OrderBuilder, OrderKind};
+use order::policy::{OrderPolicy, OrderPolicyError};
 
 pub struct MarketOrderPolicy {}
 
-impl OrderPolicy for MarketOrderPolicy {
-    fn create_order<'symbol, S: 'symbol + SymbolOhlcvSource>(&self, signal: &'symbol Signal<'symbol, S>) -> Box<Order<'symbol, S> + 'symbol> {
-        Box::new(MarketOrder::unallocated(signal.symbol(), signal.direction().clone()))
+impl MarketOrderPolicy {
+    pub fn new() -> MarketOrderPolicy {
+        MarketOrderPolicy {}
     }
 }
 
-
+impl OrderPolicy for MarketOrderPolicy {
+    fn create_order<'symbol>(&self, signal: Signal<'symbol>) -> Result<Order<'symbol>, OrderPolicyError> {
+        Ok(OrderBuilder::unallocated(OrderKind::MarketOrder, signal.symbol(), signal.direction().clone()).build())
+    }
+}
