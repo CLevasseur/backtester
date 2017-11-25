@@ -1,65 +1,137 @@
+extern crate chrono;
 mod order_id;
 mod order_status;
-mod base_order;
-mod market_order;
 
 pub mod policy;
 
+use self::chrono::prelude::{DateTime, Utc};
+use direction::Direction;
+use symbol::Symbol;
 pub use self::order_id::OrderId;
-pub use self::order_status::OrderStatus;
-pub use self::base_order::BaseOrder;
-pub use self::market_order::MarketOrder;
+pub use self::order_status::{OrderStatus, CancellationReason};
 
-use symbol::SymbolOhlcvSource;
-
-//extern crate snowflake;
-
-//use self::snowflake::ProcessUniqueId;
-//use symbol::Symbol;
-//use signal::Direction;
-
-pub trait Order<'symbol, Source: 'symbol + SymbolOhlcvSource> {
-    fn base(&self) -> &BaseOrder<'symbol, Source>;
-    fn base_mut(&mut self) -> &mut BaseOrder<'symbol, Source>;
+#[derive(PartialEq, Debug)]
+pub enum OrderKind {
+    MarketOrder,
+    LimitOrder(f64),
+    StopOrder(f64)
 }
 
+pub type OcaGroup = u32;
 
+#[derive(PartialEq, Debug)]
+pub struct Order<'symbol> {
+    id: OrderId,
+    symbol: &'symbol Symbol<'symbol>,
+    direction: Direction,
+    quantity: u32,
+    status: OrderStatus,
+    kind: OrderKind,
+    oca: Option<OcaGroup>,
+    active_until: Option<DateTime<Utc>>,
+    active_after: Option<DateTime<Utc>>
+}
 
-//pub struct LimitOrder<'symbol> {
-    //base: BaseOrder<'symbol>,
-    //limit_price: u32
-//}
-//impl<'symbol> Order<'symbol> for LimitOrder<'symbol> {
-    //fn base(&self) -> &BaseOrder<'symbol> { &self.base }
-    //fn base_mut(&mut self) -> &mut BaseOrder<'symbol> { &mut self.base }
-//}
+impl<'symbol> Order<'symbol> {
 
-//pub struct StopOrder<'symbol> {
-    //base: BaseOrder<'symbol>,
-    //stop_price: u32
-//}
-//impl<'symbol> Order<'symbol> for StopOrder<'symbol> {
-    //fn base(&self) -> &BaseOrder<'symbol> { &self.base }
-    //fn base_mut(&mut self) -> &mut BaseOrder<'symbol> { &mut self.base }
-//}
+    pub fn id(&self) -> &OrderId {
+        &self.id
+    }
 
-//impl<'symbol, T:Order<'symbol> + ?Sized> Order<'symbol> for Box<T> {
-    //fn base(&self) -> &BaseOrder<'symbol> { (**self).base() }
-    //fn base_mut(&mut self) -> &mut BaseOrder<'symbol> { (**self).base_mut() }
-//}
-////impl<'symbol, 'a, T: Order<'symbol> + ?Sized> Order<'symbol> for &'a T {
-    ////fn base(&self) -> &BaseOrder<'symbol> { &*self.base() }
-    ////fn base_mut(&mut self) -> &mut BaseOrder<'symbol> { &mut *self.base_mut() }
-////}
+    pub fn symbol(&self) -> &'symbol Symbol<'symbol> {
+        &self.symbol
+    }
 
+    pub fn direction(&self) -> &Direction {
+        &self.direction
+    }
 
-//pub enum OrderStatus {
-    //NotSent,
-    //Sent,
-    //PreSubmitted,
-    //Submitted,
-    //PartiallyFilled(u32, u32),
-    //Filled(u32),
-    //Cancelled(String)
-//}
+    pub fn quantity(&self) -> u32 {
+        self.quantity
+    }
 
+    pub fn status(&self) -> &OrderStatus {
+        &self.status
+    }
+
+    pub fn kind(&self) -> &OrderKind {
+        &self.kind
+    }
+
+    pub fn oca(&self) -> Option<OcaGroup> {
+        self.oca
+    }
+
+    pub fn active_until(&self) -> Option<DateTime<Utc>> {
+        self.active_until
+    }
+
+    pub fn active_after(&self) -> Option<DateTime<Utc>> {
+        self.active_after
+    }
+}
+
+pub struct OrderBuilder<'symbol> {
+    id: OrderId,
+    symbol: &'symbol Symbol<'symbol>,
+    direction: Direction,
+    quantity: u32,
+    status: OrderStatus,
+    kind: OrderKind,
+    oca: Option<OcaGroup>,
+    active_until: Option<DateTime<Utc>>,
+    active_after: Option<DateTime<Utc>>
+}
+
+impl<'symbol> OrderBuilder<'symbol> {
+
+    pub fn unallocated(kind: OrderKind, symbol: &'symbol Symbol<'symbol>,
+                       direction: Direction) -> OrderBuilder<'symbol> 
+    {
+        OrderBuilder {
+            id: OrderId::new(),
+            symbol: symbol,
+            direction: direction,
+            quantity: 0,
+            status: OrderStatus::NotSent,
+            kind: kind,
+            oca: None,
+            active_until: None,
+            active_after: None
+        }
+    }
+
+    pub fn id(mut self, value: OrderId) -> Self {
+        self.id = value;
+        self
+    }
+
+    pub fn oca(mut self, value: OcaGroup) -> Self {
+        self.oca = Some(value);
+        self
+    }
+
+    pub fn active_until(mut self, value: DateTime<Utc>) -> Self {
+        self.active_until = Some(value);
+        self
+    }
+
+    pub fn active_after(mut self, value: DateTime<Utc>) -> Self {
+        self.active_after = Some(value);
+        self
+    }
+
+    pub fn build(self) -> Order<'symbol> {
+        Order {
+            id: self.id,
+            symbol: self.symbol,
+            direction: self.direction,
+            quantity: self.quantity,
+            status: self.status,
+            kind: self.kind,
+            oca: self.oca,
+            active_until: self.active_until,
+            active_after: self.active_after
+        }
+    }
+}

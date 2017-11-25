@@ -33,14 +33,14 @@ impl RecordParser {
     }
 
     pub fn parse_one(&self, record: csv::StringRecord) -> Result<Ohlcv, ParseError> {
-        Ok(Ohlcv {
-            datetime: self.parse_datetime_field(&record[0])?, 
-            open: self.parse_ohlc_field(&record[1])?,
-            high: self.parse_ohlc_field(&record[2])?,
-            low: self.parse_ohlc_field(&record[3])?,
-            close: self.parse_ohlc_field(&record[4])?,            
-            volume: self.parse_volume_field(&record[5])?
-        })
+        Ok(Ohlcv::new(
+            self.parse_datetime_field(&record[0])?, 
+            self.parse_ohlc_field(&record[1])?,
+            self.parse_ohlc_field(&record[2])?,
+            self.parse_ohlc_field(&record[3])?,
+            self.parse_ohlc_field(&record[4])?,            
+            self.parse_volume_field(&record[5])?
+        ))
     }
 
     pub fn parse_datetime_field(&self, field: &str) -> Result<DateTime<Utc>, ParseError> {
@@ -87,10 +87,10 @@ mod tests {
         assert_eq!(
             parser.parse(vec![Ok(record)].into_iter()).unwrap(),
             vec![
-                Ohlcv {
-                    datetime: Utc.ymd(2017, 1, 1).and_hms(23, 59, 59),
-                    open: 1.325, high: 1.330, low: 1.320, close: 1.328, volume: 8
-                }
+                Ohlcv::new(
+                    Utc.ymd(2017, 1, 1).and_hms(23, 59, 59),
+                    1.325, 1.330, 1.320, 1.328, 8
+                )
             ]
         )
     }

@@ -5,10 +5,48 @@ pub mod source;
 
 #[derive(PartialEq, Copy, Clone, Debug)]
 pub struct Ohlcv {
-    pub datetime: DateTime<Utc>,
-    pub open: f64,
-    pub high: f64,
-    pub low: f64,
-    pub close: f64,
-    pub volume: u32
+    datetime: DateTime<Utc>,
+    open: f64,
+    high: f64,
+    low: f64,
+    close: f64,
+    volume: u32
+}
+
+impl Ohlcv {
+
+    pub fn new(datetime: DateTime<Utc>, open: f64, high: f64, low: f64, close: f64, volume: u32) -> Ohlcv {
+        Ohlcv {
+            datetime: datetime,
+            open: open,
+            high: high,
+            low: low,
+            close: close,
+            volume: volume
+        }
+    }
+
+    pub fn datetime(&self) -> &DateTime<Utc> {
+        &self.datetime
+    }
+
+    pub fn open(&self) -> f64 {
+        self.open
+    }
+
+    pub fn high(&self) -> f64 {
+        self.high
+    }
+
+    pub fn low(&self) -> f64 {
+        self.low
+    }
+
+    pub fn close(&self) -> f64 {
+        self.close
+    }
+
+    pub fn volume(&self) -> u32 {
+        self.volume
+    }
 }

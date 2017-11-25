@@ -1,18 +1,20 @@
 extern crate chrono;
 
-use symbol::{Symbol, SymbolOhlcvSource};
+use symbol::Symbol;
 use direction::Direction;
 use self::chrono::prelude::{DateTime, Utc};
 
-pub struct Signal<'symbol, S: 'symbol + SymbolOhlcvSource> {
-    symbol: &'symbol Symbol<'symbol, S>,
+pub mod detector;
+
+pub struct Signal<'symbol> {
+    symbol: &'symbol Symbol<'symbol>,
     direction: Direction,
     datetime: DateTime<Utc>,
     label: String
 }
 
-impl<'symbol, S: 'symbol + SymbolOhlcvSource> Signal<'symbol, S> {
-    pub fn new(symbol: &'symbol Symbol<'symbol, S>, direction: Direction, datetime: DateTime<Utc>, label: String) -> Signal<'symbol, S> {
+impl<'symbol> Signal<'symbol> {
+    pub fn new(symbol: &'symbol Symbol<'symbol>, direction: Direction, datetime: DateTime<Utc>, label: String) -> Signal<'symbol> {
         Signal {
             symbol: symbol,
             direction: direction,
@@ -21,7 +23,7 @@ impl<'symbol, S: 'symbol + SymbolOhlcvSource> Signal<'symbol, S> {
         }
     }
 
-    pub fn symbol(&self) -> &'symbol Symbol<'symbol, S> {
+    pub fn symbol(&self) -> &'symbol Symbol<'symbol> {
         self.symbol
     }
 

@@ -6,5 +6,11 @@ pub enum OrderStatus {
     Submitted,
     PartiallyFilled(u32, u32),
     Filled(u32),
-    Cancelled(String)
+    Cancelled(CancellationReason)
+}
+
+#[derive(Clone, Eq, PartialEq, Hash, Debug)]
+pub enum CancellationReason {
+    FilledOca,
+    OutdatedOrder
 }
