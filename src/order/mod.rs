@@ -10,7 +10,7 @@ use symbol::Symbol;
 pub use self::order_id::OrderId;
 pub use self::order_status::{OrderStatus, CancellationReason};
 
-#[derive(PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum OrderKind {
     MarketOrder,
     LimitOrder(f64),
@@ -19,7 +19,7 @@ pub enum OrderKind {
 
 pub type OcaGroup = u32;
 
-#[derive(PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct Order<'symbol> {
     id: OrderId,
     symbol: &'symbol Symbol<'symbol>,
