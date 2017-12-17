@@ -9,8 +9,8 @@ impl Once {
     pub fn new() -> Once { Once {} }
 }
 
-impl<'symbol> DetectSignal<'symbol> for Once {
-    fn detect_signal(&self, _datetime: &DateTime<Utc>) -> Result<Option<Signal<'symbol>>, DetectSignalError> {
+impl DetectSignal for Once {
+    fn detect_signal(&self, _datetime: &DateTime<Utc>) -> Result<Option<Signal>, DetectSignalError> {
         Ok(None)
     }
 }

@@ -1,30 +1,30 @@
 extern crate chrono;
 
-use symbol::Symbol;
+use symbol::SymbolId;
 use direction::Direction;
 use self::chrono::prelude::{DateTime, Utc};
 
 pub mod detector;
 
-pub struct Signal<'symbol> {
-    symbol: &'symbol Symbol<'symbol>,
+pub struct Signal {
+    symbol_id: SymbolId,
     direction: Direction,
     datetime: DateTime<Utc>,
     label: String
 }
 
-impl<'symbol> Signal<'symbol> {
-    pub fn new(symbol: &'symbol Symbol<'symbol>, direction: Direction, datetime: DateTime<Utc>, label: String) -> Signal<'symbol> {
+impl Signal {
+    pub fn new(symbol_id: SymbolId, direction: Direction, datetime: DateTime<Utc>, label: String) -> Signal {
         Signal {
-            symbol: symbol,
+            symbol_id: symbol_id,
             direction: direction,
             datetime: datetime,
             label: label
         }
     }
 
-    pub fn symbol(&self) -> &'symbol Symbol<'symbol> {
-        self.symbol
+    pub fn symbol_id(&self) -> &SymbolId {
+        &self.symbol_id
     }
 
     pub fn direction(&self) -> &Direction {

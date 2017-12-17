@@ -10,6 +10,6 @@ pub enum OrderPolicyError {
 }
 
 pub trait OrderPolicy {
-    fn create_order<'symbol>(&self, signal: Signal<'symbol>) -> Result<Order<'symbol>, OrderPolicyError>;
+    fn create_order(&self, signal: Signal) -> Result<Order, OrderPolicyError>;
 }
 

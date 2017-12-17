@@ -1,28 +1,30 @@
 use std::fmt;
 use ohlcv::source::OhlcvSource;
 
+pub type SymbolId = String;
+
 pub struct Symbol<'a> {
-    pub name: String,
+    pub id: SymbolId,
     pub source: &'a OhlcvSource
 }
 
 impl<'a> Eq for Symbol<'a> {}
 impl<'a> PartialEq for Symbol<'a> {
     fn eq(&self, other: &Symbol) -> bool {
-        self.name == other.name
+        self.id == other.id
     }
 }
 impl<'a> fmt::Debug for Symbol<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.name)
+        write!(f, "{}", self.id)
     }
 }
 
 impl<'a> Symbol<'a> {
     
-    pub fn new(name: String, source: &'a OhlcvSource) -> Symbol<'a> {
+    pub fn new(id: SymbolId, source: &'a OhlcvSource) -> Symbol<'a> {
         Symbol {
-            name: name,
+            id: id,
             source: source
         }
     }

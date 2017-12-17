@@ -8,3 +8,4 @@ pub mod model;
 pub mod market_simulation;
 pub mod portfolio;
 pub mod util;
+pub mod backtester;

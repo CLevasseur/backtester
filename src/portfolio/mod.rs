@@ -1,44 +1,52 @@
-use order::Order;
+use std::collections::HashMap;
+use order::{Order, OrderId, OrderStatus};
 
-pub struct Portfolio<'symbol> {
-    orders: Vec<Order<'symbol>>
+pub struct Portfolio {
+    active_orders: HashMap<OrderId, Order>,
+    closed_orders: HashMap<OrderId, Order>
 }
 
-impl<'symbol> Portfolio<'symbol> {
+impl Portfolio {
 
-    pub fn new() -> Portfolio<'symbol> {
+    pub fn new() -> Portfolio {
         Portfolio {
-            orders: vec![]
+            active_orders: HashMap::new(),
+            closed_orders: HashMap::new()
         }
     }
 
-    pub fn add_order(&mut self, order: Order<'symbol>) {
-        self.orders.push(order);
+    pub fn add_order(&mut self, order: Order) {
+        self.active_orders.insert(order.id().clone(), order);
     }
 
-    pub fn orders(&self) -> &Vec<Order<'symbol>> {
-        &self.orders
+    pub fn update_order(&mut self, order_id: &OrderId, order_status: OrderStatus) {
+        let mut order = self.active_orders.remove(order_id).unwrap();
+        order.set_status(order_status);
+        self.closed_orders.insert(order_id.clone(), order);
+    }
+
+    pub fn active_orders(&self) -> &HashMap<OrderId, Order> {
+        &self.active_orders
     }
 
 }
 
 #[cfg(test)]
 mod test {
-    use super::*;
-    use direction::Direction;
-    use symbol::Symbol;
-    use ohlcv::source::NullOhlcvSource;
-    use order::{OrderKind, OrderBuilder};
+    //use super::*;
+    //use direction::Direction;
+    //use symbol::SymbolId;
+    //use ohlcv::source::NullOhlcvSource;
+    //use order::{OrderKind, OrderBuilder};
 
-    #[test]
-    fn add_order() {
-        let source = NullOhlcvSource::new();
-        let symbol = Symbol::new(String::from("symbol"), &source);
-        let order = OrderBuilder::unallocated(OrderKind::MarketOrder, &symbol, Direction::Long).build();
-        let mut portfolio = Portfolio::new();
-        assert!(portfolio.orders.is_empty());
-        portfolio.add_order(order.clone());
-        assert!(portfolio.orders == vec![order]);
-    }
+    //#[test]
+    //fn add_order() {
+        //let symbol = SymbolId::from("Symbol");
+        //let order = OrderBuilder::unallocated(OrderKind::MarketOrder, symbol.clone(), Direction::Long).build();
+        //let mut portfolio = Portfolio::new();
+        //assert!(portfolio.active_orders().is_empty());
+        //portfolio.add_order(order.clone());
+        //assert!(portfolio.active_orders() == [(order.id().clone(), order)].iter().cloned().collect());
+    //}
 
 }

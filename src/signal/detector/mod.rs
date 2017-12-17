@@ -11,7 +11,7 @@ pub enum DetectSignalError {
     IndicatorError
 }
 
-pub trait DetectSignal<'symbol> {
-    fn detect_signal(&self, datetime: &DateTime<Utc>) -> Result<Option<Signal<'symbol>>, DetectSignalError>;
+pub trait DetectSignal {
+    fn detect_signal(&self, datetime: &DateTime<Utc>) -> Result<Option<Signal>, DetectSignalError>;
 }
 

@@ -6,7 +6,7 @@ pub mod policy;
 
 use self::chrono::prelude::{DateTime, Utc};
 use direction::Direction;
-use symbol::Symbol;
+use symbol::SymbolId;
 pub use self::order_id::OrderId;
 pub use self::order_status::{OrderStatus, CancellationReason};
 
@@ -20,9 +20,9 @@ pub enum OrderKind {
 pub type OcaGroup = u32;
 
 #[derive(Clone, PartialEq, Debug)]
-pub struct Order<'symbol> {
+pub struct Order {
     id: OrderId,
-    symbol: &'symbol Symbol<'symbol>,
+    symbol_id: SymbolId,
     direction: Direction,
     quantity: u32,
     status: OrderStatus,
@@ -32,14 +32,14 @@ pub struct Order<'symbol> {
     active_after: Option<DateTime<Utc>>
 }
 
-impl<'symbol> Order<'symbol> {
+impl Order {
 
     pub fn id(&self) -> &OrderId {
         &self.id
     }
 
-    pub fn symbol(&self) -> &'symbol Symbol<'symbol> {
-        &self.symbol
+    pub fn symbol_id(&self) -> &SymbolId {
+        &self.symbol_id
     }
 
     pub fn direction(&self) -> &Direction {
@@ -52,6 +52,10 @@ impl<'symbol> Order<'symbol> {
 
     pub fn status(&self) -> &OrderStatus {
         &self.status
+    }
+
+    pub fn set_status(&mut self, value: OrderStatus) {
+        self.status = value
     }
 
     pub fn kind(&self) -> &OrderKind {
@@ -71,9 +75,9 @@ impl<'symbol> Order<'symbol> {
     }
 }
 
-pub struct OrderBuilder<'symbol> {
+pub struct OrderBuilder {
     id: OrderId,
-    symbol: &'symbol Symbol<'symbol>,
+    symbol_id: SymbolId,
     direction: Direction,
     quantity: u32,
     status: OrderStatus,
@@ -83,14 +87,14 @@ pub struct OrderBuilder<'symbol> {
     active_after: Option<DateTime<Utc>>
 }
 
-impl<'symbol> OrderBuilder<'symbol> {
+impl OrderBuilder {
 
-    pub fn unallocated(kind: OrderKind, symbol: &'symbol Symbol<'symbol>,
-                       direction: Direction) -> OrderBuilder<'symbol> 
+    pub fn unallocated(kind: OrderKind, symbol_id: SymbolId,
+                       direction: Direction) -> OrderBuilder 
     {
         OrderBuilder {
             id: OrderId::new(),
-            symbol: symbol,
+            symbol_id: symbol_id,
             direction: direction,
             quantity: 0,
             status: OrderStatus::NotSent,
@@ -121,10 +125,10 @@ impl<'symbol> OrderBuilder<'symbol> {
         self
     }
 
-    pub fn build(self) -> Order<'symbol> {
+    pub fn build(self) -> Order {
         Order {
             id: self.id,
-            symbol: self.symbol,
+            symbol_id: self.symbol_id,
             direction: self.direction,
             quantity: self.quantity,
             status: self.status,
