@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use order::{Order, OrderId, OrderStatus};
 
+#[derive(Debug, Clone, PartialEq)]
 pub struct Portfolio {
     active_orders: HashMap<OrderId, Order>,
     closed_orders: HashMap<OrderId, Order>
@@ -37,20 +38,22 @@ impl Portfolio {
 
 #[cfg(test)]
 mod test {
-    //use super::*;
-    //use direction::Direction;
-    //use symbol::SymbolId;
-    //use ohlcv::source::NullOhlcvSource;
-    //use order::{OrderKind, OrderBuilder};
+    use super::*;
+    use direction::Direction;
+    use symbol::SymbolId;
+    use ohlcv::source::NullOhlcvSource;
+    use order::{OrderKind, OrderBuilder};
 
-    //#[test]
-    //fn add_order() {
-        //let symbol = SymbolId::from("Symbol");
-        //let order = OrderBuilder::unallocated(OrderKind::MarketOrder, symbol.clone(), Direction::Long).build();
-        //let mut portfolio = Portfolio::new();
-        //assert!(portfolio.active_orders().is_empty());
-        //portfolio.add_order(order.clone());
-        //assert!(portfolio.active_orders() == [(order.id().clone(), order)].iter().cloned().collect());
-    //}
-
+    #[test]
+    fn add_order() {
+        let symbol_id = SymbolId::from("Symbol");
+        let order = OrderBuilder::unallocated(OrderKind::MarketOrder, symbol_id.clone(), Direction::Long).build();
+        let mut portfolio = Portfolio::new();
+        assert!(portfolio.active_orders().is_empty());
+        portfolio.add_order(order.clone());
+        assert_eq!(
+            portfolio.active_orders(),
+            &[(order.id().clone(), order)].iter().cloned().collect::<HashMap<OrderId, Order>>()
+        );
+    }
 }

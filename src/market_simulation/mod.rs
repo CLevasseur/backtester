@@ -74,127 +74,142 @@ impl MarketSimulation {
 
 #[cfg(test)]
 mod test {
-    //use super::*;
-    //use self::chrono::prelude::{Utc, TimeZone};
-    //use order::{OrderBuilder, OrderKind};
-    //use symbol::SymbolId;
-    //use direction::Direction;
+    use super::*;
+    use self::chrono::prelude::{Utc, TimeZone};
+    use order::{OrderBuilder, OrderKind};
+    use symbol::SymbolId;
+    use direction::Direction;
 
-    //#[test]
-    //fn update_market_order() {
-        //let market_simulation = MarketSimulation::new();
-        //let symbol_id = SymbolId::from("Symbol");
-        //let order = OrderBuilder::unallocated(OrderKind::MarketOrder, symbol_id.clone(), Direction::Long).build();
-        //let mut ohlcv = HashMap::new();
-        //ohlcv.insert(symbol_id, Ohlcv::new(Utc.ymd(2016, 1, 3).and_hms(17, 0, 0), 0., 0., 0., 0., 1));
-        //let updates = market_simulation.update_orders(vec![&order].into_iter(), &ohlcv);
-        //let expected: HashMap<OrderId, OrderStatus> = [(order.id().clone(), OrderStatus::Filled(order.quantity()))].iter().cloned().collect();
-        //assert!(updates == expected);
-    //}
+    #[test]
+    fn update_market_order() {
+        let market_simulation = MarketSimulation::new();
+        let symbol_id = SymbolId::from("Symbol");
+        let order = OrderBuilder::unallocated(OrderKind::MarketOrder, symbol_id.clone(), Direction::Long).build();
+        let updates = market_simulation.update_orders(
+            vec![&order].into_iter(),
+            &symbol_id,
+            &Ohlcv::new(Utc.ymd(2016, 1, 3).and_hms(17, 0, 0), 0., 0., 0., 0., 1)
+        );
+        let expected: HashMap<OrderId, OrderStatus> = [(order.id().clone(), OrderStatus::Filled(order.quantity()))].iter().cloned().collect();
+        assert_eq!(updates, expected);
+    }
 
-    //#[test]
-    //fn update_limit_long_order() {
-        //let market_simulation = MarketSimulation::new();
-        //let symbol_id = SymbolId::from("Symbol");
-        //let executed_order = OrderBuilder::unallocated(OrderKind::LimitOrder(100.), symbol_id.clone(), Direction::Long).build();
-        //let not_executed_order = OrderBuilder::unallocated(OrderKind::LimitOrder(99.), symbol_id.clone(), Direction::Long).build();
-        //let mut ohlcv = HashMap::new();
-        //ohlcv.insert(symbol_id, Ohlcv::new(Utc.ymd(2016, 1, 3).and_hms(17, 0, 0), 0., 0., 99., 0., 1));
-        //let updates = market_simulation.update_orders(vec![&executed_order, &not_executed_order].into_iter(), &ohlcv);
-        //let expected: HashMap<OrderId, OrderStatus> = [(executed_order.id().clone(), OrderStatus::Filled(executed_order.quantity()))].iter().cloned().collect();
-        //assert!(updates == expected);
-    //}
+    #[test]
+    fn update_limit_long_order() {
+        let market_simulation = MarketSimulation::new();
+        let symbol_id = SymbolId::from("Symbol");
+        let executed_order = OrderBuilder::unallocated(OrderKind::LimitOrder(100.), symbol_id.clone(), Direction::Long).build();
+        let not_executed_order = OrderBuilder::unallocated(OrderKind::LimitOrder(99.), symbol_id.clone(), Direction::Long).build();
+        let updates = market_simulation.update_orders(
+            vec![&executed_order].into_iter(),
+            &symbol_id,
+            &Ohlcv::new(Utc.ymd(2016, 1, 3).and_hms(17, 0, 0), 0., 0., 99., 0., 1)
+        );
+        let expected: HashMap<OrderId, OrderStatus> = [(executed_order.id().clone(), OrderStatus::Filled(executed_order.quantity()))].iter().cloned().collect();
+        assert_eq!(updates, expected);
+    }
 
-    //#[test]
-    //fn update_limit_short_order() {
-        //let market_simulation = MarketSimulation::new();
-        //let symbol_id = SymbolId::from("Symbol");
-        //let executed_order = OrderBuilder::unallocated(OrderKind::LimitOrder(100.), symbol_id.clone(), Direction::Short).build();
-        //let not_executed_order = OrderBuilder::unallocated(OrderKind::LimitOrder(101.), symbol_id.clone(), Direction::Short).build();
-        //let mut ohlcv = HashMap::new();
-        //ohlcv.insert(symbol_id, Ohlcv::new(Utc.ymd(2016, 1, 3).and_hms(17, 0, 0), 0., 101., 0., 0., 1));
-        //let updates = market_simulation.update_orders(vec![&executed_order, &not_executed_order].into_iter(), &ohlcv);
-        //let expected: HashMap<OrderId, OrderStatus> = [(executed_order.id().clone(), OrderStatus::Filled(executed_order.quantity()))].iter().cloned().collect();
-        //assert!(updates == expected);
-    //}
+    #[test]
+    fn update_limit_short_order() {
+        let market_simulation = MarketSimulation::new();
+        let symbol_id = SymbolId::from("Symbol");
+        let executed_order = OrderBuilder::unallocated(OrderKind::LimitOrder(100.), symbol_id.clone(), Direction::Short).build();
+        let not_executed_order = OrderBuilder::unallocated(OrderKind::LimitOrder(101.), symbol_id.clone(), Direction::Short).build();
+        let updates = market_simulation.update_orders(
+            vec![&executed_order, &not_executed_order].into_iter(),
+            &symbol_id,
+            &Ohlcv::new(Utc.ymd(2016, 1, 3).and_hms(17, 0, 0), 0., 101., 0., 0., 1)
+        );
+        let expected: HashMap<OrderId, OrderStatus> = [(executed_order.id().clone(), OrderStatus::Filled(executed_order.quantity()))].iter().cloned().collect();
+        assert_eq!(updates, expected);
+    }
 
-    //#[test]
-    //fn update_stop_long_order() {
-        //let market_simulation = MarketSimulation::new();
-        //let symbol_id = SymbolId::from("Symbol");
-        //let executed_order = OrderBuilder::unallocated(OrderKind::StopOrder(100.), symbol_id.clone(), Direction::Long).build();
-        //let not_executed_order = OrderBuilder::unallocated(OrderKind::StopOrder(101.), symbol_id.clone(), Direction::Long).build();
-        //let mut ohlcv = HashMap::new();
-        //ohlcv.insert(symbol_id, Ohlcv::new(Utc.ymd(2016, 1, 3).and_hms(17, 0, 0), 0., 101., 0., 0., 1));
-        //let updates = market_simulation.update_orders(vec![&executed_order, &not_executed_order].into_iter(), &ohlcv);
-        //let expected: HashMap<OrderId, OrderStatus> = [(executed_order.id().clone(), OrderStatus::Filled(executed_order.quantity()))].iter().cloned().collect();
-        //assert!(updates == expected);
-    //}
+    #[test]
+    fn update_stop_long_order() {
+        let market_simulation = MarketSimulation::new();
+        let symbol_id = SymbolId::from("Symbol");
+        let executed_order = OrderBuilder::unallocated(OrderKind::StopOrder(100.), symbol_id.clone(), Direction::Long).build();
+        let not_executed_order = OrderBuilder::unallocated(OrderKind::StopOrder(101.), symbol_id.clone(), Direction::Long).build();
+        let updates = market_simulation.update_orders(
+            vec![&executed_order, &not_executed_order].into_iter(),
+            &symbol_id,
+            &Ohlcv::new(Utc.ymd(2016, 1, 3).and_hms(17, 0, 0), 0., 101., 0., 0., 1)
+        );
+        let expected: HashMap<OrderId, OrderStatus> = [(executed_order.id().clone(), OrderStatus::Filled(executed_order.quantity()))].iter().cloned().collect();
+        assert_eq!(updates, expected);
+    }
 
-    //#[test]
-    //fn update_stop_short_order() {
-        //let market_simulation = MarketSimulation::new();
-        //let symbol_id = SymbolId::from("Symbol");
-        //let executed_order = OrderBuilder::unallocated(OrderKind::StopOrder(100.), symbol_id.clone(), Direction::Short).build();
-        //let not_executed_order = OrderBuilder::unallocated(OrderKind::StopOrder(99.), symbol_id.clone(), Direction::Short).build();
-        //let mut ohlcv = HashMap::new();
-        //ohlcv.insert(symbol_id, Ohlcv::new(Utc.ymd(2016, 1, 3).and_hms(17, 0, 0), 0., 0., 99., 0., 1));
-        //let updates = market_simulation.update_orders(vec![&executed_order, &not_executed_order].into_iter(), &ohlcv);
-        //let expected: HashMap<OrderId, OrderStatus> = [(executed_order.id().clone(), OrderStatus::Filled(executed_order.quantity()))].iter().cloned().collect();
-        //assert!(updates == expected);
-    //}
+    #[test]
+    fn update_stop_short_order() {
+        let market_simulation = MarketSimulation::new();
+        let symbol_id = SymbolId::from("Symbol");
+        let executed_order = OrderBuilder::unallocated(OrderKind::StopOrder(100.), symbol_id.clone(), Direction::Short).build();
+        let not_executed_order = OrderBuilder::unallocated(OrderKind::StopOrder(99.), symbol_id.clone(), Direction::Short).build();
+        let updates = market_simulation.update_orders(
+            vec![&executed_order, &not_executed_order].into_iter(),
+            &symbol_id,
+            &Ohlcv::new(Utc.ymd(2016, 1, 3).and_hms(17, 0, 0), 0., 0., 99., 0., 1)
+        );
+        let expected: HashMap<OrderId, OrderStatus> = [(executed_order.id().clone(), OrderStatus::Filled(executed_order.quantity()))].iter().cloned().collect();
+        assert_eq!(updates, expected);
+    }
 
-    //#[test]
-    //fn update_oca() {
-        //let market_simulation = MarketSimulation::new();
-        //let symbol_id = SymbolId::from("Symbol");
-        //let not_executed_order_1 = OrderBuilder::unallocated(OrderKind::LimitOrder(100.), symbol_id.clone(), Direction::Short).oca(0).build();
-        //let executed_order = OrderBuilder::unallocated(OrderKind::MarketOrder, symbol_id.clone(), Direction::Short).oca(0).build();
-        //let not_executed_order_2 = OrderBuilder::unallocated(OrderKind::StopOrder(98.), symbol_id.clone(), Direction::Short).oca(0).build();
-        //let mut ohlcv = HashMap::new();
-        //ohlcv.insert(symbol_id, Ohlcv::new(Utc.ymd(2016, 1, 3).and_hms(17, 0, 0), 0., 0., 99., 0., 1));
-        //let updates = market_simulation.update_orders(vec![&not_executed_order_1, &executed_order, &not_executed_order_2].into_iter(), &ohlcv);
-        //let expected: HashMap<OrderId, OrderStatus> = [
-            //(not_executed_order_1.id().clone(), OrderStatus::Cancelled(CancellationReason::FilledOca)),
-            //(executed_order.id().clone(), OrderStatus::Filled(executed_order.quantity())),
-            //(not_executed_order_2.id().clone(), OrderStatus::Cancelled(CancellationReason::FilledOca))
-        //].iter().cloned().collect();
-        //println!("updates = {:?}", updates);
-        //assert!(updates == expected);
-    //}
+    #[test]
+    fn update_oca() {
+        let market_simulation = MarketSimulation::new();
+        let symbol_id = SymbolId::from("Symbol");
+        let not_executed_order_1 = OrderBuilder::unallocated(OrderKind::LimitOrder(100.), symbol_id.clone(), Direction::Short).oca(0).build();
+        let executed_order = OrderBuilder::unallocated(OrderKind::MarketOrder, symbol_id.clone(), Direction::Short).oca(0).build();
+        let not_executed_order_2 = OrderBuilder::unallocated(OrderKind::StopOrder(98.), symbol_id.clone(), Direction::Short).oca(0).build();
+        let updates = market_simulation.update_orders(
+            vec![&not_executed_order_1, &executed_order, &not_executed_order_2].into_iter(),
+            &symbol_id,
+            &Ohlcv::new(Utc.ymd(2016, 1, 3).and_hms(17, 0, 0), 0., 0., 99., 0., 1)
+        );
+        let expected: HashMap<OrderId, OrderStatus> = [
+            (not_executed_order_1.id().clone(), OrderStatus::Cancelled(CancellationReason::FilledOca)),
+            (executed_order.id().clone(), OrderStatus::Filled(executed_order.quantity())),
+            (not_executed_order_2.id().clone(), OrderStatus::Cancelled(CancellationReason::FilledOca))
+        ].iter().cloned().collect();
+        assert_eq!(updates, expected);
+    }
 
-    //#[test]
-    //fn update_outdated_order() {
-        //let market_simulation = MarketSimulation::new();
-        //let symbol_id = SymbolId::from("Symbol");
-        //let executed_order = OrderBuilder::unallocated(OrderKind::StopOrder(100.), symbol_id.clone(), Direction::Short).build();
-        //let cancelled_order = OrderBuilder::unallocated(OrderKind::StopOrder(100.), symbol_id.clone(), Direction::Short)
-            //.active_until(Utc.ymd(2016, 1, 3).and_hms(16, 59, 59))
-            //.build();
-        //let mut ohlcv = HashMap::new();
-        //ohlcv.insert(symbol_id, Ohlcv::new(Utc.ymd(2016, 1, 3).and_hms(17, 0, 0), 0., 0., 99., 0., 1));
-        //let updates = market_simulation.update_orders(vec![&executed_order, &cancelled_order].into_iter(), &ohlcv);
-        //let expected: HashMap<OrderId, OrderStatus> = [
-            //(executed_order.id().clone(), OrderStatus::Filled(executed_order.quantity())),
-            //(cancelled_order.id().clone(), OrderStatus::Cancelled(CancellationReason::OutdatedOrder)),
-        //].iter().cloned().collect();
-        //assert!(updates == expected);
-    //}
+    #[test]
+    fn update_outdated_order() {
+        let market_simulation = MarketSimulation::new();
+        let symbol_id = SymbolId::from("Symbol");
+        let executed_order = OrderBuilder::unallocated(OrderKind::StopOrder(100.), symbol_id.clone(), Direction::Short).build();
+        let cancelled_order = OrderBuilder::unallocated(OrderKind::StopOrder(100.), symbol_id.clone(), Direction::Short)
+            .active_until(Utc.ymd(2016, 1, 3).and_hms(16, 59, 59))
+            .build();
+        let updates = market_simulation.update_orders(
+            vec![&executed_order, &cancelled_order].into_iter(),
+            &symbol_id,
+            &Ohlcv::new(Utc.ymd(2016, 1, 3).and_hms(17, 0, 0), 0., 0., 99., 0., 1)
+        );
+        let expected: HashMap<OrderId, OrderStatus> = [
+            (executed_order.id().clone(), OrderStatus::Filled(executed_order.quantity())),
+            (cancelled_order.id().clone(), OrderStatus::Cancelled(CancellationReason::OutdatedOrder)),
+        ].iter().cloned().collect();
+        assert_eq!(updates, expected);
+    }
 
-    //#[test]
-    //fn update_inactive_order() {
-        //let market_simulation = MarketSimulation::new();
-        //let symbol_id = SymbolId::from("Symbol");
-        //let executed_order = OrderBuilder::unallocated(OrderKind::StopOrder(100.), symbol_id.clone(), Direction::Short).build();
-        //let not_executed_order = OrderBuilder::unallocated(OrderKind::StopOrder(100.), symbol_id.clone(), Direction::Short)
-            //.active_after(Utc.ymd(2016, 1, 3).and_hms(17, 0, 1))
-            //.build();
-        //let mut ohlcv = HashMap::new();
-        //ohlcv.insert(symbol_id, Ohlcv::new(Utc.ymd(2016, 1, 3).and_hms(17, 0, 0), 0., 0., 99., 0., 1));
-        //let updates = market_simulation.update_orders(vec![&executed_order, &not_executed_order].into_iter(), &ohlcv);
-        //let expected: HashMap<OrderId, OrderStatus> = [
-            //(executed_order.id().clone(), OrderStatus::Filled(executed_order.quantity()))
-        //].iter().cloned().collect();
-        //assert!(updates == expected);
-    //}
+    #[test]
+    fn update_inactive_order() {
+        let market_simulation = MarketSimulation::new();
+        let symbol_id = SymbolId::from("Symbol");
+        let executed_order = OrderBuilder::unallocated(OrderKind::StopOrder(100.), symbol_id.clone(), Direction::Short).build();
+        let not_executed_order = OrderBuilder::unallocated(OrderKind::StopOrder(100.), symbol_id.clone(), Direction::Short)
+            .active_after(Utc.ymd(2016, 1, 3).and_hms(17, 0, 1))
+            .build();
+        let updates = market_simulation.update_orders(
+            vec![&executed_order, &not_executed_order].into_iter(),
+            &symbol_id,
+            &Ohlcv::new(Utc.ymd(2016, 1, 3).and_hms(17, 0, 0), 0., 0., 99., 0., 1)
+        );
+        let expected: HashMap<OrderId, OrderStatus> = [
+            (executed_order.id().clone(), OrderStatus::Filled(executed_order.quantity()))
+        ].iter().cloned().collect();
+        assert!(updates == expected);
+    }
 }

@@ -17,7 +17,7 @@ pub struct Backtester<'a> {
     symbol_sources: HashMap<SymbolId, &'a OhlcvSource>
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum BacktesterError {
     OhlcvSourceError(OhlcvSourceError),
     StrategyError(StrategyError)
