@@ -1,7 +1,10 @@
 extern crate backtester;
 extern crate chrono;
+extern crate csv;
 
+use std::collections::HashMap;
 use chrono::prelude::{DateTime, Utc, TimeZone};
+use backtester::ohlcv::source::{OhlcvSource, CsvOhlcvSource};
 use backtester::backtester::Backtester;
 use backtester::market_simulation::MarketSimulation;
 use backtester::model::{Model, ModelId};
@@ -60,8 +63,13 @@ impl Model for OrderEveryCandle {
 
 #[test]
 fn backtest_order_every_candle() {
-    let models: Vec<Box<Model>> = vec![Box::new(OrderEveryCandle { symbol_id: SymbolId::from("eur/usd") })];
-    let backtester = Backtester::new(MarketSimulation::new());
-    
-    backtester.run(&models, Utc.ymd(2006, 1, 1).and_hms(0, 0, 0), Utc.ymd(2017, 2, 1).and_hms(0, 0, 0));
+    let symbol_id = SymbolId::from("eur/usd");
+    let models: Vec<Box<Model>> = vec![Box::new(OrderEveryCandle { symbol_id: symbol_id.clone() })];
+    let path = String::from("eurusd.csv");
+    let reader = csv::ReaderBuilder::new().has_headers(false).delimiter(b';').from_path(&path).unwrap();
+    let source = CsvOhlcvSource::new(reader, String::from("%Y%m%d %H%M%S")).unwrap();
+    let mut symbol_sources: HashMap<SymbolId, &OhlcvSource> = HashMap::new();
+    symbol_sources.insert(symbol_id.clone(), &source);
+    let backtester = Backtester::new(MarketSimulation::new(), symbol_sources);
+    let portfolio = backtester.run(&models, &Utc.ymd(2016, 1, 3).and_hms(17, 0, 0), &Utc.ymd(2016, 12, 30).and_hms(16, 58, 0)).unwrap();
 }

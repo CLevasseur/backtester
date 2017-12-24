@@ -8,8 +8,9 @@ use ohlcv::source::{OhlcvSource, OhlcvSourceError};
 pub struct NullOhlcvSource {}
 
 impl OhlcvSource for NullOhlcvSource {
-    fn ohlcv(&self, date: &DateTime<Utc>) -> Result<Ohlcv, OhlcvSourceError> { 
-        Err(OhlcvSourceError::DateNotFound(date.clone()))
+    fn ohlcv(&self, start_date: &DateTime<Utc>, end_date: &DateTime<Utc>) 
+        -> Result<Vec<Ohlcv>, OhlcvSourceError> {
+        Err(OhlcvSourceError::DateNotFound(start_date.clone()))
     }
 }
 

@@ -9,7 +9,8 @@ pub use self::null::NullOhlcvSource;
 pub use self::csv::CsvOhlcvSource;
 
 pub trait OhlcvSource {
-    fn ohlcv(&self, date: &DateTime<Utc>) -> Result<Ohlcv, OhlcvSourceError>;
+    fn ohlcv(&self, start_date: &DateTime<Utc>, end_date: &DateTime<Utc>) 
+        -> Result<Vec<Ohlcv>, OhlcvSourceError>;
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]

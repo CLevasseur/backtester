@@ -29,6 +29,10 @@ impl Portfolio {
         &self.active_orders
     }
 
+    pub fn closed_orders(&self) -> &HashMap<OrderId, Order> {
+        &self.closed_orders
+    }
+
 }
 
 #[cfg(test)]
