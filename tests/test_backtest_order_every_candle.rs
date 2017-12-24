@@ -65,7 +65,7 @@ impl Model for OrderEveryCandle {
 fn backtest_order_every_candle() {
     let symbol_id = SymbolId::from("eur/usd");
     let models: Vec<Box<Model>> = vec![Box::new(OrderEveryCandle { symbol_id: symbol_id.clone() })];
-    let path = String::from("eurusd.csv");
+    let path = String::from("tests/data/eurusd.csv");
     let reader = csv::ReaderBuilder::new().has_headers(false).delimiter(b';').from_path(&path).unwrap();
     let source = CsvOhlcvSource::new(reader, String::from("%Y%m%d %H%M%S")).unwrap();
     let mut symbol_sources: HashMap<SymbolId, &OhlcvSource> = HashMap::new();
