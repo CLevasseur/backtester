@@ -71,5 +71,5 @@ fn backtest_order_every_candle() {
     let mut symbol_sources: HashMap<SymbolId, &OhlcvSource> = HashMap::new();
     symbol_sources.insert(symbol_id.clone(), &source);
     let backtester = Backtester::new(MarketSimulation::new(), symbol_sources);
-    let portfolio = backtester.run(&models, &Utc.ymd(2016, 1, 3).and_hms(17, 0, 0), &Utc.ymd(2016, 12, 30).and_hms(16, 58, 0)).unwrap();
+    let portfolio = backtester.run(&models, &Utc.ymd(2016, 6, 1).and_hms(0, 0, 0), &Utc.ymd(2016, 12, 1).and_hms(0, 0, 0)).unwrap();
 }
