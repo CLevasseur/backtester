@@ -2,11 +2,9 @@ extern crate backtester;
 extern crate chrono;
 extern crate csv;
 
-use std::collections::HashMap;
 use chrono::prelude::{DateTime, Utc, TimeZone};
 use backtester::ohlcv::source::{OhlcvSource, CsvOhlcvSource};
 use backtester::backtester::Backtester;
-use backtester::market_simulation::MarketSimulation;
 use backtester::model::{Model, ModelId};
 use backtester::strategy::Strategy;
 use backtester::signal::detector::{DetectSignal, DetectSignalError};
@@ -15,6 +13,7 @@ use backtester::order::Order;
 use backtester::order::policy::MarketOrderPolicy;
 use backtester::symbol::SymbolId;
 use backtester::signal::Signal;
+use backtester::util::record_parser::RecordParser;
 
 
 pub struct AlwaysDetectSignal {
@@ -64,12 +63,20 @@ impl Model for OrderEveryCandle {
 #[test]
 fn backtest_order_every_candle() {
     let symbol_id = SymbolId::from("eur/usd");
-    let models: Vec<Box<Model>> = vec![Box::new(OrderEveryCandle { symbol_id: symbol_id.clone() })];
+
+    // create ohlcv source
     let path = String::from("tests/data/eurusd.csv");
     let reader = csv::ReaderBuilder::new().has_headers(false).delimiter(b';').from_path(&path).unwrap();
-    let source = CsvOhlcvSource::new(reader, String::from("%Y%m%d %H%M%S")).unwrap();
-    let mut symbol_sources: HashMap<SymbolId, &OhlcvSource> = HashMap::new();
-    symbol_sources.insert(symbol_id.clone(), &source);
-    let backtester = Backtester::new(MarketSimulation::new(), symbol_sources);
-    let portfolio = backtester.run(&models, &Utc.ymd(2016, 6, 1).and_hms(0, 0, 0), &Utc.ymd(2016, 12, 1).and_hms(0, 0, 0)).unwrap();
+    let record_parser = RecordParser::new(symbol_id.clone(), String::from("%Y%m%d %H%M%S"));
+    let source = CsvOhlcvSource::new(reader, record_parser).unwrap();
+
+    // launch backtest
+    let backtester = Backtester::new();
+    backtester.run(
+        &vec![Box::new(OrderEveryCandle { symbol_id: symbol_id.clone() })],
+        source.ohlcv(
+            &Utc.ymd(2016, 6, 1).and_hms(0, 0, 0),
+            &Utc.ymd(2016, 12, 1).and_hms(0, 0, 0)
+        ).unwrap().into_iter()
+    ).unwrap();
 }

@@ -4,16 +4,18 @@ use self::chrono::prelude::{DateTime, Utc, TimeZone};
 use std::num::{ParseIntError, ParseFloatError};
 
 use ohlcv::Ohlcv;
+use symbol::SymbolId;
 
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub struct RecordParser {
+    symbol_id: SymbolId,
     datetime_format: String
 }
 
 impl RecordParser {
 
-    pub fn new(datetime_format: String) -> RecordParser {
-        RecordParser { datetime_format: datetime_format }
+    pub fn new(symbol_id: SymbolId, datetime_format: String) -> RecordParser {
+        RecordParser { symbol_id, datetime_format }
     }
 
     pub fn parse<I>(&self, records: I) -> Result<Vec<Ohlcv>, ParseError> 
@@ -21,12 +23,9 @@ impl RecordParser {
     {
         let mut result = vec![];
         for record in records {
-            if let Err(e) = record {
-                return Err(ParseError::InvalidRecordStructure(e))
-            }
-            else {
-                let ohlcv = self.parse_one(record.unwrap())?;
-                result.push(ohlcv);
+            match record {
+                Ok(values) => result.push(self.parse_one(values)?),
+                Err(e) => return Err(ParseError::InvalidRecordStructure(e))
             }
         }
         Ok(result)
@@ -34,6 +33,7 @@ impl RecordParser {
 
     pub fn parse_one(&self, record: csv::StringRecord) -> Result<Ohlcv, ParseError> {
         Ok(Ohlcv::new(
+            self.symbol_id.clone(),
             self.parse_datetime_field(&record[0])?, 
             self.parse_ohlc_field(&record[1])?,
             self.parse_ohlc_field(&record[2])?,
@@ -80,7 +80,7 @@ mod tests {
 
     #[test]
     fn parse_correct_record() {
-        let parser = RecordParser::new(String::from("%Y%m%d %H:%M:%S"));
+        let parser = RecordParser::new(SymbolId::from("eur/usd"), String::from("%Y%m%d %H:%M:%S"));
         let record = csv::StringRecord::from(vec![
             "20170101 23:59:59", "1.325", "1.330", "1.320", "1.328", "8"
         ]);
@@ -88,6 +88,7 @@ mod tests {
             parser.parse(vec![Ok(record)].into_iter()).unwrap(),
             vec![
                 Ohlcv::new(
+                    SymbolId::from("eur/usd"),
                     Utc.ymd(2017, 1, 1).and_hms(23, 59, 59),
                     1.325, 1.330, 1.320, 1.328, 8
                 )
@@ -95,42 +96,35 @@ mod tests {
         )
     }
 
-    //#[test]
-    //fn parse_incorrect_record() {
-        //let parser = RecordParser::new(String::from(""));
-        //let err = csv::Error(Box::new(csv::ErrorKind::Seek));
-        //assert!(parser.parse(vec![Err(err)].into_iter()).is_err());
-    //}
-
     #[test]
     fn parse_correct_ohlc_field() {
-        let parser = RecordParser::new(String::from(""));
+        let parser = RecordParser::new(SymbolId::from("eur/usd"), String::from(""));
         assert_eq!(parser.parse_ohlc_field("1.3052").unwrap(), 1.3052);
     }
 
     #[test]
     #[should_panic]
     fn parse_incorrect_ohlc_field() {
-        let parser = RecordParser::new(String::from(""));
+        let parser = RecordParser::new(SymbolId::from("eur/usd"), String::from(""));
         parser.parse_ohlc_field("erroneous").unwrap();
     }
 
     #[test]
     fn parse_correct_volume_field() {
-        let parser = RecordParser::new(String::from(""));
+        let parser = RecordParser::new(SymbolId::from("eur/usd"), String::from(""));
         assert_eq!(parser.parse_volume_field("123").unwrap(), 123);
     }
 
     #[test]
     #[should_panic]
     fn parse_incorrect_volume_field() {
-        let parser = RecordParser::new(String::from(""));
+        let parser = RecordParser::new(SymbolId::from("eur/usd"), String::from(""));
         parser.parse_volume_field("1.30").unwrap();
     }
 
     #[test]
     fn parse_correct_datetime_field() {
-        let parser = RecordParser::new(String::from("%Y%m%d %H:%M:%S"));
+        let parser = RecordParser::new(SymbolId::from("eur/usd"), String::from("%Y%m%d %H:%M:%S"));
         assert_eq!(
             parser.parse_datetime_field("20170101 23:59:59").unwrap(),
             Utc.ymd(2017, 1, 1).and_hms(23, 59, 59)
@@ -139,7 +133,7 @@ mod tests {
 
     #[test]
     fn parse_incorrect_datetime_field() {
-        let parser = RecordParser::new(String::from("%Y%m%d %H:%M:%S"));
+        let parser = RecordParser::new(SymbolId::from("eur/usd"), String::from("%Y%m%d %H:%M:%S"));
         assert!(parser.parse_datetime_field("20170101 23:59").is_err());
     }
 }

@@ -8,7 +8,7 @@ use self::chrono::prelude::{DateTime, Utc};
 use signal::detector::{DetectSignal, DetectSignalError};
 use order::{Order};
 use order::policy::{OrderPolicy, OrderPolicyError};
-pub use strategy::strategy_manager::StrategyManager;
+pub use strategy::strategy_manager::{StrategyManager, StrategyCollection};
 
 
 pub type StrategyId = ProcessUniqueId;

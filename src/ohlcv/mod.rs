@@ -3,8 +3,11 @@ use self::chrono::prelude::{DateTime, Utc};
 
 pub mod source;
 
-#[derive(PartialEq, Copy, Clone, Debug)]
+use symbol::SymbolId;
+
+#[derive(PartialEq, Clone, Debug)]
 pub struct Ohlcv {
+    symbol_id: SymbolId,
     datetime: DateTime<Utc>,
     open: f64,
     high: f64,
@@ -15,15 +18,20 @@ pub struct Ohlcv {
 
 impl Ohlcv {
 
-    pub fn new(datetime: DateTime<Utc>, open: f64, high: f64, low: f64, close: f64, volume: u32) -> Ohlcv {
+    pub fn new(symbol_id: SymbolId, datetime: DateTime<Utc>, open: f64, high: f64, low: f64, close: f64, volume: u32) -> Ohlcv {
         Ohlcv {
-            datetime: datetime,
-            open: open,
-            high: high,
-            low: low,
-            close: close,
-            volume: volume
+            symbol_id,
+            datetime,
+            open,
+            high,
+            low,
+            close,
+            volume
         }
+    }
+
+    pub fn symbol_id(&self) -> &SymbolId {
+        &self.symbol_id
     }
 
     pub fn datetime(&self) -> &DateTime<Utc> {

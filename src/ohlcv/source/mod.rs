@@ -5,8 +5,10 @@ use ohlcv::Ohlcv;
 
 mod null;
 mod csv;
+mod ohlcv_source_collection;
 pub use self::null::NullOhlcvSource;
 pub use self::csv::CsvOhlcvSource;
+pub use self::ohlcv_source_collection::OhlcvSourceCollection;
 
 pub trait OhlcvSource {
     fn ohlcv(&self, start_date: &DateTime<Utc>, end_date: &DateTime<Utc>) 

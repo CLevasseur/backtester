@@ -12,6 +12,10 @@ impl MarketOrderPolicy {
 
 impl OrderPolicy for MarketOrderPolicy {
     fn create_order(&self, signal: Signal) -> Result<Order, OrderPolicyError> {
-        Ok(OrderBuilder::unallocated(OrderKind::MarketOrder, signal.symbol_id().clone(), signal.direction().clone()).build())
+        Ok(OrderBuilder::unallocated(
+            OrderKind::MarketOrder,
+            signal.symbol_id().clone(),
+            signal.direction().clone()
+        ).build())
     }
 }

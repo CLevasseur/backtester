@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use self::chrono::prelude::{DateTime, Utc};
 use model::Model;
 use strategy::{Strategy, StrategyError, StrategyId};
-use order::{Order, OrderId};
+use order::{Order, OrderId, OrderStatus};
 
 pub enum StrategyType<'model> {
     EntryStrategy(StrategyId, &'model Model),
@@ -59,9 +59,31 @@ impl StrategyManager {
         strategy_collection
     }
 
-    pub fn update_exit_strategies<'model>(&self, 
-                                          strategies: &mut StrategyCollection<'model>,
-                                          closed_order: &Order)
+    pub fn update_strategies(&self, strategy_collection: &mut StrategyCollection,
+                         active_orders: &HashMap<OrderId, Order>,
+                         order_updates: &HashMap<OrderId, OrderStatus>)
+    {
+        for (updated_order_id, updated_order_status) in order_updates {
+            match active_orders.get(&updated_order_id) {
+                Some(order) => {
+                    match *updated_order_status {
+                        OrderStatus::Filled(_) => {
+                            self.update_exit_strategies(strategy_collection, order);
+                        },
+                        OrderStatus::Cancelled(_) => {
+                            self.update_exit_strategies(strategy_collection, order);
+                        },
+                        _ => ()
+                    }
+                },
+                None => ()  // TODO: raise err
+            }
+        }
+    }
+
+    fn update_exit_strategies<'model>(&self,
+                                      strategies: &mut StrategyCollection<'model>,
+                                      closed_order: &Order)
     {
         let strategy_updates;
         {
