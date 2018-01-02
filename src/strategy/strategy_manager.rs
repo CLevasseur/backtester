@@ -1,6 +1,6 @@
 extern crate chrono;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, BTreeMap};
 use self::chrono::prelude::{DateTime, Utc};
 use model::Model;
 use strategy::{Strategy, StrategyError, StrategyId};
@@ -13,7 +13,7 @@ pub enum StrategyType<'model> {
 
 pub struct StrategyCollection<'model> {
     pub entry_strategies: Vec<Strategy>,
-    pub exit_strategies: HashMap<StrategyId, Strategy>,
+    pub exit_strategies: BTreeMap<StrategyId, Strategy>,
     pub order_strategy: HashMap<OrderId, StrategyId>,
     pub strategy_types: HashMap<StrategyId, StrategyType<'model>>
 }
@@ -23,17 +23,12 @@ impl<'model> StrategyCollection<'model> {
     pub fn new() -> StrategyCollection<'model> {
         StrategyCollection {
             entry_strategies: vec![],
-            exit_strategies: HashMap::new(),
+            exit_strategies: BTreeMap::new(),
             order_strategy: HashMap::new(),
             strategy_types: HashMap::new()
         }
     }
 
-}
-
-enum StrategiesUpdate<'model> {
-    AddExitStrategies(Vec<Strategy>, &'model Model),
-    RemoveExitStrategy(StrategyId)
 }
 
 pub struct StrategyManager;
@@ -44,7 +39,9 @@ impl StrategyManager {
         StrategyManager {}
     }
 
-    pub fn initialize_strategy_collection<'model>(&self, models: &'model Vec<Box<Model>>) -> StrategyCollection<'model> {
+    pub fn initialize_strategy_collection<'model>(&self, models: &'model Vec<Box<Model>>)
+        -> StrategyCollection<'model>
+    {
         let mut strategy_collection = StrategyCollection::new();
 
         for model in models {
@@ -60,23 +57,17 @@ impl StrategyManager {
     }
 
     pub fn update_strategies(&self, strategy_collection: &mut StrategyCollection,
-                         active_orders: &HashMap<OrderId, Order>,
-                         order_updates: &HashMap<OrderId, OrderStatus>)
+                             order_updates: &Vec<(&Order, OrderStatus)>)
     {
-        for (updated_order_id, updated_order_status) in order_updates {
-            match active_orders.get(&updated_order_id) {
-                Some(order) => {
-                    match *updated_order_status {
-                        OrderStatus::Filled(_) => {
-                            self.update_exit_strategies(strategy_collection, order);
-                        },
-                        OrderStatus::Cancelled(_) => {
-                            self.update_exit_strategies(strategy_collection, order);
-                        },
-                        _ => ()
-                    }
+        for update in order_updates {
+            match update.1 {
+                OrderStatus::Filled(_) => {
+                    self.update_exit_strategies(strategy_collection, update.0);
                 },
-                None => ()  // TODO: raise err
+                OrderStatus::Cancelled(_) => {
+                    self.update_exit_strategies(strategy_collection, update.0);
+                },
+                _ => ()
             }
         }
     }
@@ -132,6 +123,11 @@ impl StrategyManager {
         Ok(orders)
     }
 
+}
+
+enum StrategiesUpdate<'model> {
+    AddExitStrategies(Vec<Strategy>, &'model Model),
+    RemoveExitStrategy(StrategyId)
 }
 
 #[cfg(test)]

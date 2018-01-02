@@ -31,7 +31,6 @@ impl<T: Read> OhlcvSource for CsvOhlcvSource<T> {
         if start_idx == end_idx {
             end_idx += 1;
         }
-//        Ok(self.loaded[..].to_vec())
         Ok(self.loaded[start_idx..end_idx].to_vec())
     }
 }

@@ -18,6 +18,7 @@ pub enum BacktesterError {
     StrategyError(StrategyError)
 }
 
+// TODO: need start/end date on ohlcv
 impl Backtester {
 
     pub fn new() -> Self {
@@ -32,16 +33,32 @@ impl Backtester {
     {
         let mut portfolio = Portfolio::new();
         let mut strategy_collection = self.strategy_manager.initialize_strategy_collection(models);
+        let mut previous_datetime = None;
 
         for o in ohlcv {
             let updates = self.market_simulation.update_orders(portfolio.active_orders().values(), &o);
-            self.strategy_manager.update_strategies(&mut strategy_collection, &portfolio.active_orders(), &updates);
+
+            self.strategy_manager.update_strategies(
+                &mut strategy_collection,
+                &updates.iter().map(
+                    |update| (portfolio.active_orders().get(update.0).unwrap(), update.1.clone())
+                ).collect()
+            );
             portfolio.update_orders(&updates);
 
-            portfolio.add_orders(
-                self.strategy_manager.run_strategies(&mut strategy_collection, o.datetime())
-                    .map_err(|e| BacktesterError::StrategyError(e))?
-            );
+            // run strategies only once per date, multiple ohlcv can have the same datetime
+            // when there is more than one symbol
+            match previous_datetime {
+                Some(ref datetime) if datetime == o.datetime() => (),
+                _ => {
+                    portfolio.add_orders(
+                        self.strategy_manager.run_strategies(&mut strategy_collection, o.datetime())
+                            .map_err(|e| BacktesterError::StrategyError(e))?
+                    );
+                }
+            }
+
+            previous_datetime = Some(*o.datetime());
         }
 
         Ok(portfolio)
@@ -71,69 +88,55 @@ mod test {
     use super::*;
     extern crate chrono;
     use self::chrono::prelude::{DateTime, Utc, TimeZone};
-    use ohlcv::source::{OhlcvSource, CsvOhlcvSource};
     use backtester::Backtester;
     use model::{Model, ModelId};
     use strategy::Strategy;
     use signal::detector::{DetectSignal, DetectSignalError};
     use direction::Direction;
-    use order::Order;
+    use order::{Order, OrderBuilder, OrderKind, OrderStatus};
     use order::policy::MarketOrderPolicy;
     use symbol::SymbolId;
     use signal::Signal;
-    use util::record_parser::RecordParser;
 
-
-    pub struct AlwaysDetectSignal {
-        symbol_id: SymbolId
-    }
-
+    pub struct AlwaysDetectSignal { direction: Direction }
     impl DetectSignal for AlwaysDetectSignal {
         fn detect_signal(&self, datetime: &DateTime<Utc>) -> Result<Option<Signal>, DetectSignalError> {
             let signal = Signal::new(
-                self.symbol_id.clone(),
-                Direction::Long,
-                datetime.clone(),
-                String::from("always detect signal")
+                SymbolId::from("eur/usd"), self.direction,
+                datetime.clone(), String::from("always detect signal")
             );
             Ok(Some(signal))
         }
     }
 
-    pub struct OrderEveryCandle {
-        symbol_id: SymbolId
-    }
-
+    pub struct OrderEveryCandle;
     impl Model for OrderEveryCandle {
 
-        fn id(&self) -> ModelId {
-            ModelId::from("order every candle")
-        }
+        fn id(&self) -> ModelId { ModelId::from("order every candle") }
 
         fn entry_strategy(&self) -> Strategy {
             Strategy::new(
-                Box::new(AlwaysDetectSignal { symbol_id: self.symbol_id.clone() }),
+                Box::new(AlwaysDetectSignal { direction: Direction::Long }),
                 Box::new(MarketOrderPolicy::new())
             )
         }
 
         fn exit_strategies(&self, _order: &Order) -> Vec<Strategy> {
-            let strategy = Strategy::new(
-                Box::new(AlwaysDetectSignal { symbol_id: self.symbol_id.clone() }),
-                Box::new(MarketOrderPolicy::new())
-            );
-
-            vec![strategy]
+            vec![
+                Strategy::new(
+                    Box::new(AlwaysDetectSignal { direction: Direction::Short }),
+                    Box::new(MarketOrderPolicy::new())
+                )
+            ]
         }
 
     }
 
     #[test]
     fn test_run() {
-        let symbol_id = SymbolId::from("eur/usd");
         let backtester = Backtester::new();
         let portfolio = backtester.run(
-            &vec![Box::new(OrderEveryCandle { symbol_id: symbol_id.clone() })],
+            &vec![Box::new(OrderEveryCandle {})],
             vec![
                 Ohlcv::new(SymbolId::from("eur/usd"), Utc.ymd(2017, 12, 29).and_hms(12, 0, 0), 1., 1., 1., 1., 0),
                 Ohlcv::new(SymbolId::from("usd/jpy"), Utc.ymd(2017, 12, 29).and_hms(12, 0, 0), 1., 1., 1., 1., 0),
@@ -141,6 +144,35 @@ mod test {
                 Ohlcv::new(SymbolId::from("usd/jpy"), Utc.ymd(2017, 12, 29).and_hms(12, 0, 5), 1., 1.5, 1., 1.5, 3)
             ].into_iter()
         ).unwrap();
+
+        let active_orders = portfolio.active_orders().values().collect::<Vec<&Order>>();
+        let closed_orders = portfolio.closed_orders().values().collect::<Vec<&Order>>();
+
+        let expected_active_orders: Vec<Order> = vec![
+            // Long order from the second detection made by the entry strategy
+            OrderBuilder::unallocated(
+                OrderKind::MarketOrder, SymbolId::from("eur/usd"), Direction::Long
+            ).id(active_orders[0].id().clone()).build(),
+            // Short order from the exit strategy linked to the first entry order
+            OrderBuilder::unallocated(
+                OrderKind::MarketOrder, SymbolId::from("eur/usd"), Direction::Short
+            ).id(active_orders[1].id().clone()).build()
+        ];
+        let expected_closed_orders: Vec<Order> = vec![
+            // First entry order has been filled
+            OrderBuilder::unallocated(
+                OrderKind::MarketOrder, SymbolId::from("eur/usd"), Direction::Long
+            ).id(closed_orders[0].id().clone()).status(OrderStatus::Filled(0)).build()
+        ];
+
+        assert_eq!(
+            active_orders,
+            expected_active_orders.iter().collect::<Vec<&Order>>()
+        );
+        assert_eq!(
+            closed_orders,
+            expected_closed_orders.iter().collect::<Vec<&Order>>()
+        );
     }
 
 }

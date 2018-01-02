@@ -110,6 +110,11 @@ impl OrderBuilder {
         self
     }
 
+    pub fn status(mut self, value: OrderStatus) -> Self {
+        self.status = value;
+        self
+    }
+
     pub fn oca(mut self, value: OcaGroup) -> Self {
         self.oca = Some(value);
         self

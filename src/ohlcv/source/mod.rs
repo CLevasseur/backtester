@@ -3,10 +3,8 @@ use std::fmt;
 use self::chrono::prelude::{DateTime, Utc};
 use ohlcv::Ohlcv;
 
-mod null;
 mod csv;
 mod ohlcv_source_collection;
-pub use self::null::NullOhlcvSource;
 pub use self::csv::CsvOhlcvSource;
 pub use self::ohlcv_source_collection::OhlcvSourceCollection;
 
