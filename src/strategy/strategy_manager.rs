@@ -72,25 +72,29 @@ impl StrategyManager {
         }
     }
 
-    fn update_exit_strategies<'model>(&self,
-                                      strategies: &mut StrategyCollection<'model>,
+    fn update_exit_strategies<'model>(&self, strategies: &mut StrategyCollection<'model>,
                                       closed_order: &Order)
     {
         let strategy_updates;
+
+        // Get strategy to add or remove
         {
             let strategy_id = strategies.order_strategy.get(closed_order.id()).unwrap();
             let strategy_type = strategies.strategy_types.get(strategy_id).unwrap();
 
             strategy_updates = match strategy_type {
+                // Add exit strategies when an entry order is executed
                 &StrategyType::EntryStrategy(_strategy_id, model) => {
                     StrategiesUpdate::AddExitStrategies(model.exit_strategies(closed_order), model)
                 },
+                // Remove corresponding exit strategy when exit order is executed
                 &StrategyType::ExitStrategy(_strategy_id, _model) => {
                     StrategiesUpdate::RemoveExitStrategy(*strategy_id)
                 }
             }
         };
 
+        // Apply strategy updates
         match strategy_updates {
             StrategiesUpdate::AddExitStrategies(new_strategies, model) => {
                 for strategy in new_strategies {
@@ -166,7 +170,10 @@ mod test {
         }
 
         fn exit_strategies(&self, _order: &Order) -> Vec<Strategy> {
-            vec![]
+            vec![
+                Strategy::new(Box::new(SomeSignal { symbol: self.symbol.clone() }), Box::new(MarketOrderPolicy::new())),
+                Strategy::new(Box::new(SomeSignal { symbol: self.symbol.clone() }), Box::new(MarketOrderPolicy::new()))
+            ]
         }
 
     }
@@ -183,6 +190,36 @@ mod test {
         fn detect_signal(&self, _datetime: &DateTime<Utc>) -> Result<Option<Signal>, DetectSignalError> {
             Err(DetectSignalError::IndicatorError)
         }
+    }
+
+    #[test]
+    fn update_strategies_entry_order_filled() {
+        let symbol_id = SymbolId::from("instrument");
+        let model: Box<Model> = Box::new(MockModel { symbol: symbol_id.clone(), err: false });
+        let strategy_manager = StrategyManager::new();
+        let mut strategy_collection = StrategyCollection::new();
+        let order_id = OrderId::new();
+        strategy_collection.entry_strategies.push(model.entry_strategy());
+        strategy_collection.order_strategy.insert(
+            order_id.clone(),
+            strategy_collection.entry_strategies.first().unwrap().id().clone()
+        );
+        strategy_collection.strategy_types.insert(
+            strategy_collection.entry_strategies.first().unwrap().id().clone(),
+            StrategyType::EntryStrategy(
+                strategy_collection.entry_strategies.first().unwrap().id().clone(),
+                &model
+            )
+        );
+        strategy_manager.update_strategies(
+            &mut strategy_collection,
+            &vec![(
+                &OrderBuilder::unallocated(OrderKind::MarketOrder, symbol_id.clone(), Direction::Long)
+                    .id(order_id.clone()).build(),
+                OrderStatus::Filled(1)
+            )]
+        );
+        assert_eq!(strategy_collection.exit_strategies.len(), 2);
     }
 
     #[test]
