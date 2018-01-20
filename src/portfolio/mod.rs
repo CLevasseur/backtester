@@ -26,8 +26,7 @@ impl Portfolio {
         }
     }
 
-    fn update_order(&mut self, order_id: &OrderId, order_status: OrderStatus) {
-        // TODO: does not always remove from active orders
+    fn move_order_to_closed_orders(&mut self, order_id: &OrderId, order_status: OrderStatus) {
         match self.active_orders.remove(order_id) {
             Some(mut order) => {
                 order.set_status(order_status);
@@ -43,6 +42,14 @@ impl Portfolio {
             },
             None => panic!("Order not found: {}", order_id)  // TODO: raise err
         };
+    }
+
+    fn update_order(&mut self, order_id: &OrderId, order_status: OrderStatus) {
+        match order_status {
+            OrderStatus::Filled(_) => self.move_order_to_closed_orders(order_id, order_status),
+            OrderStatus::Cancelled(_) => self.move_order_to_closed_orders(order_id, order_status),
+            _ => ()
+        }
     }
 
     pub fn update_orders(&mut self, order_updates: &HashMap<OrderId, OrderStatus>) {

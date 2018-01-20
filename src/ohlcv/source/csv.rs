@@ -54,30 +54,33 @@ mod tests {
     use super::*;
     use symbol::SymbolId;
 
-//    use ohlcv::chrono::TimeZone;
+    use ohlcv::chrono::TimeZone;
 
-    //#[test]
-    //fn new_with_correct_inputs() {
-        //let data = "date;open;high;low;close;volume
-        //20160103 170000;1.087010;1.087130;1.087010;1.087130;1
-        //20160103 170100;1.087120;1.087120;1.087120;1.087120;0
-        //20160103 170200;1.087080;1.087220;1.087080;1.087220;4";
-        //let rdr = csv::ReaderBuilder::new().delimiter(b';').from_reader(data.as_bytes());
-        //let source = CsvOhlcvSource::new(rdr, String::from("%Y%m%d %H%M%S")).unwrap();
-        //assert_eq!(
-            //source.ohlcv(&Utc.ymd(2016, 1, 3).and_hms(17, 0, 0), &Utc.ymd(2016, 1, 3).and_hms(17, 0, 0)).unwrap(),
-            //vec![
-                //Ohlcv {
-                    //datetime: Utc.ymd(2016, 1, 3).and_hms(17, 0, 0),
-                    //open: 1.087010,
-                    //high: 1.087130,
-                    //low: 1.087010,
-                    //close: 1.087130,
-                    //volume: 1
-                //}
-            //]
-        //)
-    //}
+    #[test]
+    fn new_with_correct_inputs() {
+        let data = "date;open;high;low;close;volume
+        20160103 170000;1.087010;1.087130;1.087010;1.087130;1
+        20160103 170100;1.087120;1.087120;1.087120;1.087120;0
+        20160103 170200;1.087080;1.087220;1.087080;1.087220;4";
+        let symbol_id = SymbolId::from("eur/usd");
+        let rp = RecordParser::new(symbol_id.clone(), String::from("%Y%m%d %H%M%S"));
+        let rdr = csv::ReaderBuilder::new().delimiter(b';').from_reader(data.as_bytes());
+        let source = CsvOhlcvSource::new(rdr, rp).unwrap();
+        assert_eq!(
+            source.ohlcv(&Utc.ymd(2016, 1, 3).and_hms(17, 0, 0), &Utc.ymd(2016, 1, 3).and_hms(17, 0, 0)).unwrap(),
+            vec![
+                Ohlcv {
+                    symbol_id: symbol_id.clone(),
+                    datetime: Utc.ymd(2016, 1, 3).and_hms(17, 0, 0),
+                    open: 1.087010,
+                    high: 1.087130,
+                    low: 1.087010,
+                    close: 1.087130,
+                    volume: 1
+                }
+            ]
+        )
+    }
 
     #[test]
     fn new_with_incorrect_date_format() {
@@ -96,7 +99,7 @@ mod tests {
         20160103 170000;1.087010;1.087130;1.087010;1.087130;1
         20160103 170100;1.087120;1.087120;1.087120;1.087120;0
         20160103 170200;1.087080;1.087220;1.087080;1.087220";
-        let rp = RecordParser::new(SymbolId::from("eur/usd"), String::from("%m%d%Y"));
+        let rp = RecordParser::new(SymbolId::from("eur/usd"), String::from("%Y%m%d %H%M%S"));
         let rdr = csv::ReaderBuilder::new().delimiter(b';').from_reader(data.as_bytes());
         assert!(CsvOhlcvSource::new(rdr, rp).is_err());
     }

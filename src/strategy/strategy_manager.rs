@@ -62,10 +62,10 @@ impl StrategyManager {
         for update in order_updates {
             match update.1 {
                 OrderStatus::Filled(_) => {
-                    self.update_exit_strategies(strategy_collection, update.0);
+                    self.update_exit_strategies(strategy_collection, update.0, &update.1);
                 },
                 OrderStatus::Cancelled(_) => {
-                    self.update_exit_strategies(strategy_collection, update.0);
+                    self.update_exit_strategies(strategy_collection, update.0, &update.1);
                 },
                 _ => ()
             }
@@ -73,7 +73,7 @@ impl StrategyManager {
     }
 
     fn update_exit_strategies<'model>(&self, strategies: &mut StrategyCollection<'model>,
-                                      closed_order: &Order)
+                                      closed_order: &Order, order_status: &OrderStatus)
     {
         let strategy_updates;
 
@@ -85,28 +85,43 @@ impl StrategyManager {
             strategy_updates = match strategy_type {
                 // Add exit strategies when an entry order is executed
                 &StrategyType::EntryStrategy(_strategy_id, model) => {
-                    StrategiesUpdate::AddExitStrategies(model.exit_strategies(closed_order), model)
+                    match order_status {
+                        &OrderStatus::Filled(_) => {
+                            Some(StrategiesUpdate::AddExitStrategies(model.exit_strategies(closed_order), model))
+                        },
+                        _ => None
+                    }
                 },
                 // Remove corresponding exit strategy when exit order is executed
                 &StrategyType::ExitStrategy(_strategy_id, _model) => {
-                    StrategiesUpdate::RemoveExitStrategy(*strategy_id)
+                    match order_status {
+                        &OrderStatus::Filled(_) => {
+                            Some(StrategiesUpdate::RemoveExitStrategy(*strategy_id))
+                        },
+                        &OrderStatus::Cancelled(_) => {
+                            Some(StrategiesUpdate::RemoveExitStrategy(*strategy_id))
+                        },
+                        _ => None
+                    }
                 }
             }
         };
 
         // Apply strategy updates
-        match strategy_updates {
-            StrategiesUpdate::AddExitStrategies(new_strategies, model) => {
-                for strategy in new_strategies {
-                    strategies.strategy_types.insert(
-                        strategy.id().clone(),
-                        StrategyType::ExitStrategy(strategy.id().clone(), model)
-                    );
-                    strategies.exit_strategies.insert(strategy.id().clone(), strategy);
+        if let Some(updates) = strategy_updates {
+            match updates {
+                StrategiesUpdate::AddExitStrategies(new_strategies, model) => {
+                    for strategy in new_strategies {
+                        strategies.strategy_types.insert(
+                            strategy.id().clone(),
+                            StrategyType::ExitStrategy(strategy.id().clone(), model)
+                        );
+                        strategies.exit_strategies.insert(strategy.id().clone(), strategy);
+                    }
+                },
+                StrategiesUpdate::RemoveExitStrategy(strategy_id) => {
+                    strategies.exit_strategies.remove(&strategy_id);
                 }
-            },
-            StrategiesUpdate::RemoveExitStrategy(strategy_id) => {
-                strategies.exit_strategies.remove(&strategy_id);
             }
         }
     }
@@ -138,7 +153,7 @@ enum StrategiesUpdate<'model> {
 mod test {
     use super::*;
     use self::chrono::prelude::{TimeZone};
-    use order::{Order, OrderBuilder, OrderKind};
+    use order::{Order, OrderBuilder, OrderKind, CancellationReason};
     use signal::Signal;
     use signal::detector::{DetectSignal, DetectSignalError};
     use symbol::SymbolId;
@@ -192,6 +207,7 @@ mod test {
         }
     }
 
+    /// Test that exit strategies are added to collection when the entry order is filled
     #[test]
     fn update_strategies_entry_order_filled() {
         let symbol_id = SymbolId::from("instrument");
@@ -220,6 +236,72 @@ mod test {
             )]
         );
         assert_eq!(strategy_collection.exit_strategies.len(), 2);
+    }
+
+    /// Test that exit strategy is removed from the collection when its order is filled
+    #[test]
+    fn update_strategies_exit_order_filled() {
+        let symbol_id = SymbolId::from("instrument");
+        let model: Box<Model> = Box::new(MockModel { symbol: symbol_id.clone(), err: false });
+        let strategy_manager = StrategyManager::new();
+        let mut strategy_collection = StrategyCollection::new();
+        let order_id = OrderId::new();
+        let entry_order = OrderBuilder::unallocated(OrderKind::MarketOrder, symbol_id.clone(), Direction::Long).build();
+        let exit_strategy = model.exit_strategies(&entry_order).remove(0);
+        strategy_collection.exit_strategies.insert(exit_strategy.id().clone(), exit_strategy);
+        strategy_collection.order_strategy.insert(
+            order_id.clone(),
+            strategy_collection.exit_strategies.keys().next().unwrap().clone()
+        );
+        strategy_collection.strategy_types.insert(
+            strategy_collection.exit_strategies.keys().next().unwrap().clone(),
+            StrategyType::ExitStrategy(
+                strategy_collection.exit_strategies.keys().next().unwrap().clone(),
+                &model
+            )
+        );
+        strategy_manager.update_strategies(
+            &mut strategy_collection,
+            &vec![(
+                &OrderBuilder::unallocated(OrderKind::MarketOrder, symbol_id.clone(), Direction::Long)
+                    .id(order_id.clone()).build(),
+                OrderStatus::Filled(1)
+            )]
+        );
+        assert_eq!(strategy_collection.exit_strategies.len(), 0);
+    }
+
+    /// Test that exit strategy is removed from the collection when its order is cancelled
+    #[test]
+    fn update_strategies_exit_order_cancelled() {
+        let symbol_id = SymbolId::from("instrument");
+        let model: Box<Model> = Box::new(MockModel { symbol: symbol_id.clone(), err: false });
+        let strategy_manager = StrategyManager::new();
+        let mut strategy_collection = StrategyCollection::new();
+        let order_id = OrderId::new();
+        let entry_order = OrderBuilder::unallocated(OrderKind::MarketOrder, symbol_id.clone(), Direction::Long).build();
+        let exit_strategy = model.exit_strategies(&entry_order).remove(0);
+        strategy_collection.exit_strategies.insert(exit_strategy.id().clone(), exit_strategy);
+        strategy_collection.order_strategy.insert(
+            order_id.clone(),
+            strategy_collection.exit_strategies.keys().next().unwrap().clone()
+        );
+        strategy_collection.strategy_types.insert(
+            strategy_collection.exit_strategies.keys().next().unwrap().clone(),
+            StrategyType::ExitStrategy(
+                strategy_collection.exit_strategies.keys().next().unwrap().clone(),
+                &model
+            )
+        );
+        strategy_manager.update_strategies(
+            &mut strategy_collection,
+            &vec![(
+                &OrderBuilder::unallocated(OrderKind::MarketOrder, symbol_id.clone(), Direction::Long)
+                    .id(order_id.clone()).build(),
+                OrderStatus::Cancelled(CancellationReason::FilledOca)
+            )]
+        );
+        assert_eq!(strategy_collection.exit_strategies.len(), 0);
     }
 
     #[test]
