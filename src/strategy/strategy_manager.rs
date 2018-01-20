@@ -39,6 +39,7 @@ impl StrategyManager {
         StrategyManager {}
     }
 
+    /// Create a strategy collection with entry strategies from given models
     pub fn initialize_strategy_collection<'model>(&self, models: &'model Vec<Box<Model>>)
         -> StrategyCollection<'model>
     {
@@ -56,6 +57,24 @@ impl StrategyManager {
         strategy_collection
     }
 
+    /// Run all strategies of the collection at the specified date
+    pub fn run_strategies(&self, strategies: &mut StrategyCollection,
+                          datetime: &DateTime<Utc>) -> Result<Vec<Order>, StrategyError>
+    {
+        let mut orders = vec![];
+
+        for strategy in strategies.entry_strategies.iter_mut().chain(strategies.exit_strategies.values_mut()) {
+            let order = strategy.run(datetime)?;
+            if let Some(o) = order {
+                strategies.order_strategy.insert(o.id().clone(), strategy.id().clone());
+                orders.push(o);
+            }
+        }
+
+        Ok(orders)
+    }
+
+    /// Update strategies when an order is updated
     pub fn update_strategies(&self, strategy_collection: &mut StrategyCollection,
                              order_updates: &Vec<(&Order, OrderStatus)>)
     {
@@ -72,6 +91,8 @@ impl StrategyManager {
         }
     }
 
+    /// Add exit strategies if an entry order is executed, remove exit strategy if its order
+    /// is cancelled or executed
     fn update_exit_strategies<'model>(&self, strategies: &mut StrategyCollection<'model>,
                                       closed_order: &Order, order_status: &OrderStatus)
     {
@@ -124,22 +145,6 @@ impl StrategyManager {
                 }
             }
         }
-    }
-
-    pub fn run_strategies(&self, strategies: &mut StrategyCollection,
-                          datetime: &DateTime<Utc>) -> Result<Vec<Order>, StrategyError>
-    {
-        let mut orders = vec![];
-
-        for strategy in strategies.entry_strategies.iter_mut().chain(strategies.exit_strategies.values_mut()) {
-            let order = strategy.run(datetime)?;
-            if let Some(o) = order {
-                strategies.order_strategy.insert(o.id().clone(), strategy.id().clone());
-                orders.push(o);
-            }
-        }
-
-        Ok(orders)
     }
 
 }

@@ -16,17 +16,23 @@ impl Portfolio {
         }
     }
 
-    pub fn add_order(&mut self, order: Order) {
-        self.active_orders.insert(order.id().clone(), order);
-    }
-
     pub fn add_orders(&mut self, orders: Vec<Order>) {
         for order in orders {
-            self.add_order(order);
+            self.active_orders.insert(order.id().clone(), order);
         }
     }
 
-    fn move_order_to_closed_orders(&mut self, order_id: &OrderId, order_status: OrderStatus) {
+    pub fn update_orders(&mut self, order_updates: &HashMap<OrderId, OrderStatus>) {
+        for (updated_order_id, updated_order_status) in order_updates {
+            match *updated_order_status {
+                OrderStatus::Filled(_) => self.move_active_order_to_closed_orders(updated_order_id, updated_order_status.clone()),
+                OrderStatus::Cancelled(_) => self.move_active_order_to_closed_orders(updated_order_id, updated_order_status.clone()),
+                _ => ()
+            }
+        }
+    }
+
+    fn move_active_order_to_closed_orders(&mut self, order_id: &OrderId, order_status: OrderStatus) {
         match self.active_orders.remove(order_id) {
             Some(mut order) => {
                 order.set_status(order_status);
@@ -42,20 +48,6 @@ impl Portfolio {
             },
             None => panic!("Order not found: {}", order_id)  // TODO: raise err
         };
-    }
-
-    fn update_order(&mut self, order_id: &OrderId, order_status: OrderStatus) {
-        match order_status {
-            OrderStatus::Filled(_) => self.move_order_to_closed_orders(order_id, order_status),
-            OrderStatus::Cancelled(_) => self.move_order_to_closed_orders(order_id, order_status),
-            _ => ()
-        }
-    }
-
-    pub fn update_orders(&mut self, order_updates: &HashMap<OrderId, OrderStatus>) {
-        for (updated_order_id, updated_order_status) in order_updates {
-            self.update_order(&updated_order_id, updated_order_status.clone());
-        }
     }
 
     pub fn active_orders(&self) -> &BTreeMap<OrderId, Order> {
@@ -83,7 +75,7 @@ mod test {
         ).build();
         let mut portfolio = Portfolio::new();
         assert!(portfolio.active_orders().is_empty());
-        portfolio.add_order(order.clone());
+        portfolio.add_orders(vec![order.clone()]);
         assert_eq!(
             portfolio.active_orders(),
             &[(order.id().clone(), order)].iter().cloned().collect::<BTreeMap<OrderId, Order>>()
