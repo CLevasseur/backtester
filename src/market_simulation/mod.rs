@@ -3,6 +3,7 @@ use std::collections::{HashSet, HashMap};
 use ohlcv::Ohlcv;
 use direction::Direction;
 use order::{Order, OrderId, OrderStatus, OrderKind, OcaGroup, CancellationReason};
+use execution::Execution;
 
 pub struct MarketSimulation;
 
@@ -76,7 +77,21 @@ impl MarketSimulation {
                         }
                     }
                 }
-                updates.insert(order.id().clone(), OrderStatus::Filled(order.quantity()));
+                updates.insert(
+                    order.id().clone(),
+                    OrderStatus::Filled(
+                        Execution::new(
+                            order.symbol_id().clone(),
+                            order.quantity(),
+                            match order.kind() {
+                                &OrderKind::MarketOrder => ohlcv.open(),
+                                &OrderKind::LimitOrder(price) => price,
+                                &OrderKind::StopOrder(price) => price
+                            },
+                            ohlcv.datetime().clone()
+                        )
+                    )
+                );
             }
         }
         updates
@@ -88,6 +103,7 @@ mod test {
     use super::*;
     use self::chrono::prelude::{Utc, TimeZone};
     use order::{OrderBuilder, OrderKind};
+    use execution::Execution;
     use symbol::SymbolId;
     use direction::Direction;
 
@@ -98,9 +114,21 @@ mod test {
         let order = OrderBuilder::unallocated(OrderKind::MarketOrder, symbol_id.clone(), Direction::Long).build();
         let updates = market_simulation.update_orders(
             vec![&order].into_iter(),
-            &Ohlcv::new(symbol_id.clone(), Utc.ymd(2016, 1, 3).and_hms(17, 0, 0), 0., 0., 0., 0., 1)
+            &Ohlcv::new(symbol_id.clone(), Utc.ymd(2016, 1, 3).and_hms(17, 0, 0), 1., 2., 0., 1.5, 1)
         );
-        let expected: HashMap<OrderId, OrderStatus> = [(order.id().clone(), OrderStatus::Filled(order.quantity()))].iter().cloned().collect();
+        let expected: HashMap<OrderId, OrderStatus> = [
+            (
+                order.id().clone(),
+                OrderStatus::Filled(
+                    Execution::new(
+                        symbol_id.clone(),
+                        order.quantity(),
+                        1.,
+                        Utc.ymd(2016, 1, 3).and_hms(17, 0, 0)
+                    )
+                )
+            )
+        ].iter().cloned().collect();
         assert_eq!(updates, expected);
     }
 
@@ -114,7 +142,19 @@ mod test {
             vec![&executed_order, &not_executed_order].into_iter(),
             &Ohlcv::new(symbol_id.clone(), Utc.ymd(2016, 1, 3).and_hms(17, 0, 0), 0., 0., 99., 0., 1)
         );
-        let expected: HashMap<OrderId, OrderStatus> = [(executed_order.id().clone(), OrderStatus::Filled(executed_order.quantity()))].iter().cloned().collect();
+        let expected: HashMap<OrderId, OrderStatus> = [
+            (
+                executed_order.id().clone(),
+                OrderStatus::Filled(
+                    Execution::new(
+                        symbol_id.clone(),
+                        executed_order.quantity(),
+                        100.,
+                        Utc.ymd(2016, 1, 3).and_hms(17, 0, 0)
+                    )
+                )
+            )
+        ].iter().cloned().collect();
         assert_eq!(updates, expected);
     }
 
@@ -128,7 +168,20 @@ mod test {
             vec![&executed_order, &not_executed_order].into_iter(),
             &Ohlcv::new(symbol_id.clone(), Utc.ymd(2016, 1, 3).and_hms(17, 0, 0), 0., 101., 0., 0., 1)
         );
-        let expected: HashMap<OrderId, OrderStatus> = [(executed_order.id().clone(), OrderStatus::Filled(executed_order.quantity()))].iter().cloned().collect();
+        let expected: HashMap<OrderId, OrderStatus> = [
+            (
+                executed_order.id().clone(),
+                OrderStatus::Filled(
+                    Execution::new(
+                        symbol_id.clone(),
+                        executed_order.quantity(),
+                        100.,
+                        Utc.ymd(2016, 1, 3).and_hms(17, 0, 0)
+                    )
+                )
+            )
+        ].iter().cloned().collect();
+
         assert_eq!(updates, expected);
     }
 
@@ -142,7 +195,19 @@ mod test {
             vec![&executed_order, &not_executed_order].into_iter(),
             &Ohlcv::new(symbol_id.clone(), Utc.ymd(2016, 1, 3).and_hms(17, 0, 0), 0., 101., 0., 0., 1)
         );
-        let expected: HashMap<OrderId, OrderStatus> = [(executed_order.id().clone(), OrderStatus::Filled(executed_order.quantity()))].iter().cloned().collect();
+        let expected: HashMap<OrderId, OrderStatus> = [
+            (
+                executed_order.id().clone(),
+                OrderStatus::Filled(
+                    Execution::new(
+                        symbol_id.clone(),
+                        executed_order.quantity(),
+                        100.,
+                        Utc.ymd(2016, 1, 3).and_hms(17, 0, 0)
+                    )
+                )
+            )
+        ].iter().cloned().collect();
         assert_eq!(updates, expected);
     }
 
@@ -156,7 +221,19 @@ mod test {
             vec![&executed_order, &not_executed_order].into_iter(),
             &Ohlcv::new(symbol_id.clone(), Utc.ymd(2016, 1, 3).and_hms(17, 0, 0), 0., 0., 99., 0., 1)
         );
-        let expected: HashMap<OrderId, OrderStatus> = [(executed_order.id().clone(), OrderStatus::Filled(executed_order.quantity()))].iter().cloned().collect();
+        let expected: HashMap<OrderId, OrderStatus> = [
+            (
+                executed_order.id().clone(),
+                OrderStatus::Filled(
+                    Execution::new(
+                        symbol_id.clone(),
+                        executed_order.quantity(),
+                        100.,
+                        Utc.ymd(2016, 1, 3).and_hms(17, 0, 0)
+                    )
+                )
+            )
+        ].iter().cloned().collect();
         assert_eq!(updates, expected);
     }
 
@@ -173,7 +250,17 @@ mod test {
         );
         let expected: HashMap<OrderId, OrderStatus> = [
             (not_executed_order_1.id().clone(), OrderStatus::Cancelled(CancellationReason::FilledOca)),
-            (executed_order.id().clone(), OrderStatus::Filled(executed_order.quantity())),
+            (
+                executed_order.id().clone(),
+                OrderStatus::Filled(
+                    Execution::new(
+                        symbol_id.clone(),
+                        executed_order.quantity(),
+                        0.,
+                        Utc.ymd(2016, 1, 3).and_hms(17, 0, 0)
+                    )
+                )
+            ),
             (not_executed_order_2.id().clone(), OrderStatus::Cancelled(CancellationReason::FilledOca))
         ].iter().cloned().collect();
         assert_eq!(updates, expected);
@@ -192,7 +279,17 @@ mod test {
             &Ohlcv::new(symbol_id.clone(), Utc.ymd(2016, 1, 3).and_hms(17, 0, 0), 0., 0., 99., 0., 1)
         );
         let expected: HashMap<OrderId, OrderStatus> = [
-            (executed_order.id().clone(), OrderStatus::Filled(executed_order.quantity())),
+            (
+                executed_order.id().clone(),
+                OrderStatus::Filled(
+                    Execution::new(
+                        symbol_id.clone(),
+                        executed_order.quantity(),
+                        100.,
+                        Utc.ymd(2016, 1, 3).and_hms(17, 0, 0)
+                    )
+                )
+            ),
             (cancelled_order.id().clone(), OrderStatus::Cancelled(CancellationReason::OutdatedOrder)),
         ].iter().cloned().collect();
         assert_eq!(updates, expected);
@@ -211,7 +308,17 @@ mod test {
             &Ohlcv::new(symbol_id.clone(), Utc.ymd(2016, 1, 3).and_hms(17, 0, 0), 0., 0., 99., 0., 1)
         );
         let expected: HashMap<OrderId, OrderStatus> = [
-            (executed_order.id().clone(), OrderStatus::Filled(executed_order.quantity()))
+            (
+                executed_order.id().clone(),
+                OrderStatus::Filled(
+                    Execution::new(
+                        symbol_id.clone(),
+                        executed_order.quantity(),
+                        100.,
+                        Utc.ymd(2016, 1, 3).and_hms(17, 0, 0)
+                    )
+                )
+            )
         ].iter().cloned().collect();
         assert!(updates == expected);
     }

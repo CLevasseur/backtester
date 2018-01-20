@@ -95,6 +95,7 @@ mod test {
     use direction::Direction;
     use order::{Order, OrderBuilder, OrderKind, OrderStatus};
     use order::policy::MarketOrderPolicy;
+    use execution::Execution;
     use symbol::SymbolId;
     use signal::Signal;
 
@@ -162,7 +163,18 @@ mod test {
             // First entry order has been filled
             OrderBuilder::unallocated(
                 OrderKind::MarketOrder, SymbolId::from("eur/usd"), Direction::Long
-            ).id(closed_orders[0].id().clone()).status(OrderStatus::Filled(0)).build()
+            )
+                .id(closed_orders[0].id().clone())
+                .status(
+                    OrderStatus::Filled(
+                        Execution::new(
+                            SymbolId::from("eur/usd"),
+                            0,
+                            1.,
+                            Utc.ymd(2017, 12, 29).and_hms(12, 0, 5)
+                        )
+                    )
+                ).build()
         ];
 
         assert_eq!(

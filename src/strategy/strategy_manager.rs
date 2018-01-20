@@ -165,6 +165,7 @@ mod test {
     use model::ModelId;
     use direction::Direction;
     use order::policy::MarketOrderPolicy;
+    use execution::Execution;
 
     #[derive(Clone)]
     struct MockModel {
@@ -236,8 +237,15 @@ mod test {
             &mut strategy_collection,
             &vec![(
                 &OrderBuilder::unallocated(OrderKind::MarketOrder, symbol_id.clone(), Direction::Long)
-                    .id(order_id.clone()).build(),
-                OrderStatus::Filled(1)
+                    .id(order_id.clone()).quantity(3).build(),
+                OrderStatus::Filled(
+                    Execution::new(
+                        symbol_id.clone(),
+                        3,
+                        1234.,
+                        Utc.ymd(2017, 12, 1).and_hms(12, 0, 0)
+                    )
+                )
             )]
         );
         assert_eq!(strategy_collection.exit_strategies.len(), 2);
@@ -269,8 +277,15 @@ mod test {
             &mut strategy_collection,
             &vec![(
                 &OrderBuilder::unallocated(OrderKind::MarketOrder, symbol_id.clone(), Direction::Long)
-                    .id(order_id.clone()).build(),
-                OrderStatus::Filled(1)
+                    .id(order_id.clone()).quantity(3).build(),
+                OrderStatus::Filled(
+                    Execution::new(
+                        symbol_id.clone(),
+                        3,
+                        1234.,
+                        Utc.ymd(2017, 12, 1).and_hms(12, 0, 0)
+                    )
+                )
             )]
         );
         assert_eq!(strategy_collection.exit_strategies.len(), 0);

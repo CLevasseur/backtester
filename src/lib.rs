@@ -9,3 +9,4 @@ pub mod market_simulation;
 pub mod portfolio;
 pub mod util;
 pub mod backtester;
+pub mod execution;

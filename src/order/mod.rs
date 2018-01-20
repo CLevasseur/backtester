@@ -110,6 +110,11 @@ impl OrderBuilder {
         self
     }
 
+    pub fn quantity(mut self, value: u32) -> Self {
+        self.quantity = value;
+        self
+    }
+
     pub fn status(mut self, value: OrderStatus) -> Self {
         self.status = value;
         self

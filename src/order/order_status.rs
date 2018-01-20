@@ -1,11 +1,10 @@
-#[derive(Clone, Eq, PartialEq, Hash, Debug)]
+use execution::Execution;
+
+#[derive(Clone, PartialEq, Debug)]
 pub enum OrderStatus {
     NotSent,
     Sent,
-    PreSubmitted,
-    Submitted,
-    PartiallyFilled(u32, u32),
-    Filled(u32),
+    Filled(Execution),
     Cancelled(CancellationReason)
 }
 
