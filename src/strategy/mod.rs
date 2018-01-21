@@ -5,8 +5,9 @@ mod strategy_manager;
 
 use self::snowflake::ProcessUniqueId;
 use self::chrono::prelude::{DateTime, Utc};
+use signal::Signal;
 use signal::detector::{DetectSignal, DetectSignalError};
-use order::{Order};
+use order::OrderBuilder;
 use order::policy::{OrderPolicy, OrderPolicyError};
 pub use strategy::strategy_manager::{StrategyManager, StrategyCollection};
 
@@ -35,10 +36,13 @@ impl Strategy {
         }
     }
 
-    pub fn run(&self, datetime: &DateTime<Utc>) -> Result<Option<Order>, StrategyError> {
+    pub fn run(&self, datetime: &DateTime<Utc>) -> Result<Option<(Signal, OrderBuilder)>, StrategyError>
+    {
         match self.signal_detector.detect_signal(datetime) {
-            Ok(Some(signal)) => match self.order_policy.create_order(signal) {
-                Ok(order) => Ok(Some(order)),
+            Ok(Some(signal)) => match self.order_policy.create_order(&signal) {
+                Ok(order_builder) => {
+                    Ok(Some((signal, order_builder)))
+                },
                 Err(e) => Err(StrategyError::CreateOrderError(e))
             },
             Ok(None) => Ok(None),
@@ -56,7 +60,7 @@ impl Strategy {
 mod tests {
     use super::*;
     use self::chrono::prelude::{TimeZone};
-    use order::{Order, OrderBuilder, OrderKind};
+    use order::{OrderBuilder, OrderKind};
     use signal::Signal;
     use signal::detector::{DetectSignal, DetectSignalError};
     use symbol::SymbolId;
@@ -86,14 +90,14 @@ mod tests {
 
     struct MockOrderPolicy;
     impl OrderPolicy for MockOrderPolicy {
-        fn create_order(&self, signal: Signal) -> Result<Order, OrderPolicyError> {
-            Ok(OrderBuilder::unallocated(OrderKind::MarketOrder, signal.symbol_id().clone(),signal.direction().clone()).build())
+        fn create_order(&self, signal: &Signal) -> Result<OrderBuilder, OrderPolicyError> {
+            Ok(OrderBuilder::unallocated(OrderKind::MarketOrder, signal.symbol_id().clone(),signal.direction().clone()))
         }
     }
 
     struct MockOrderPolicyError;
     impl OrderPolicy for MockOrderPolicyError {
-        fn create_order(&self, _signal: Signal) -> Result<Order, OrderPolicyError> {
+        fn create_order(&self, _signal: &Signal) -> Result<OrderBuilder, OrderPolicyError> {
             Err(OrderPolicyError::IndicatorError)
         }
     }

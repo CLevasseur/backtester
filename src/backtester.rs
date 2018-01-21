@@ -6,11 +6,13 @@ use ohlcv::Ohlcv;
 use market_simulation::MarketSimulation;
 use portfolio::Portfolio;
 use strategy::{StrategyManager, StrategyError};
+use order::OrderIdGenerator;
 
 
 pub struct Backtester {
     market_simulation: MarketSimulation,
-    strategy_manager: StrategyManager
+    strategy_manager: StrategyManager,
+    order_id_generator: OrderIdGenerator
 }
 
 #[derive(Debug, Clone)]
@@ -24,7 +26,8 @@ impl Backtester {
     pub fn new() -> Self {
         Backtester {
             market_simulation: MarketSimulation::new(),
-            strategy_manager: StrategyManager::new()
+            strategy_manager: StrategyManager::new(),
+            order_id_generator: OrderIdGenerator::new()
         }
     }
 
@@ -52,8 +55,12 @@ impl Backtester {
                 Some(ref datetime) if datetime == o.datetime() => (),
                 _ => {
                     portfolio.add_orders(
-                        self.strategy_manager.run_strategies(&mut strategy_collection, o.datetime())
+                        self.strategy_manager.run_strategies(
+                            &mut strategy_collection, o.datetime(), &self.order_id_generator
+                        )
                             .map_err(|e| BacktesterError::StrategyError(e))?
+                            .into_iter().map(|order_builder| order_builder.build().unwrap())
+                            .collect()
                     );
                 }
             }
@@ -147,25 +154,29 @@ mod test {
         ).unwrap();
 
         let active_orders = portfolio.active_orders().values().collect::<Vec<&Order>>();
+        println!("Active orders: {:#?}", &active_orders);
+        assert_eq!(active_orders.len(), 2);
         let closed_orders = portfolio.closed_orders().values().collect::<Vec<&Order>>();
+        println!("Closed orders: {:#?}", &closed_orders);
+        assert_eq!(closed_orders.len(), 1);
 
         let expected_active_orders: Vec<Order> = vec![
             // Long order from the second detection made by the entry strategy
             OrderBuilder::unallocated(
                 OrderKind::MarketOrder, SymbolId::from("eur/usd"), Direction::Long
-            ).id(active_orders[0].id().clone()).build(),
+            ).set_id(active_orders[0].id().clone()).build().unwrap(),
             // Short order from the exit strategy linked to the first entry order
             OrderBuilder::unallocated(
                 OrderKind::MarketOrder, SymbolId::from("eur/usd"), Direction::Short
-            ).id(active_orders[1].id().clone()).build()
+            ).set_id(active_orders[1].id().clone()).build().unwrap()
         ];
         let expected_closed_orders: Vec<Order> = vec![
             // First entry order has been filled
             OrderBuilder::unallocated(
                 OrderKind::MarketOrder, SymbolId::from("eur/usd"), Direction::Long
             )
-                .id(closed_orders[0].id().clone())
-                .status(
+                .set_id(closed_orders[0].id().clone())
+                .set_status(
                     OrderStatus::Filled(
                         Execution::new(
                             SymbolId::from("eur/usd"),
@@ -174,7 +185,7 @@ mod test {
                             Utc.ymd(2017, 12, 29).and_hms(12, 0, 5)
                         )
                     )
-                ).build()
+                ).build().unwrap()
         ];
 
         assert_eq!(

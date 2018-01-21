@@ -4,7 +4,7 @@ use std::collections::{HashMap, BTreeMap};
 use self::chrono::prelude::{DateTime, Utc};
 use model::Model;
 use strategy::{Strategy, StrategyError, StrategyId};
-use order::{Order, OrderId, OrderStatus};
+use order::{Order, OrderId, OrderStatus, OrderIdGenerator, OrderBuilder};
 
 pub enum StrategyType<'model> {
     EntryStrategy(StrategyId, &'model Model),
@@ -58,20 +58,23 @@ impl StrategyManager {
     }
 
     /// Run all strategies of the collection at the specified date
-    pub fn run_strategies(&self, strategies: &mut StrategyCollection,
-                          datetime: &DateTime<Utc>) -> Result<Vec<Order>, StrategyError>
+    pub fn run_strategies(&self, strategies: &mut StrategyCollection, datetime: &DateTime<Utc>,
+                          order_id_generator: &OrderIdGenerator) -> Result<Vec<OrderBuilder>, StrategyError>
     {
-        let mut orders = vec![];
+        let mut order_builders = vec![];
 
         for strategy in strategies.entry_strategies.iter_mut().chain(strategies.exit_strategies.values_mut()) {
-            let order = strategy.run(datetime)?;
-            if let Some(o) = order {
-                strategies.order_strategy.insert(o.id().clone(), strategy.id().clone());
-                orders.push(o);
+            let result = strategy.run(datetime)?;
+            if let Some(o) = result {
+                let (signal, order_builder) = o;
+                let order_id = order_id_generator.get_id(strategy.id().clone(), &signal, &order_builder);
+                let order_builder = order_builder.set_id(order_id.clone());
+                strategies.order_strategy.insert(order_id.clone(), strategy.id().clone());
+                order_builders.push(order_builder);
             }
         }
 
-        Ok(orders)
+        Ok(order_builders)
     }
 
     /// Update strategies when an order is updated
@@ -158,7 +161,7 @@ enum StrategiesUpdate<'model> {
 mod test {
     use super::*;
     use self::chrono::prelude::{TimeZone};
-    use order::{Order, OrderBuilder, OrderKind, CancellationReason};
+    use order::{Order, OrderBuilder, OrderKind, CancellationReason, OrderIdGenerator};
     use signal::Signal;
     use signal::detector::{DetectSignal, DetectSignalError};
     use symbol::SymbolId;
@@ -220,7 +223,7 @@ mod test {
         let model: Box<Model> = Box::new(MockModel { symbol: symbol_id.clone(), err: false });
         let strategy_manager = StrategyManager::new();
         let mut strategy_collection = StrategyCollection::new();
-        let order_id = OrderId::new();
+        let order_id = OrderId::from("test order");
         strategy_collection.entry_strategies.push(model.entry_strategy());
         strategy_collection.order_strategy.insert(
             order_id.clone(),
@@ -237,7 +240,9 @@ mod test {
             &mut strategy_collection,
             &vec![(
                 &OrderBuilder::unallocated(OrderKind::MarketOrder, symbol_id.clone(), Direction::Long)
-                    .id(order_id.clone()).quantity(3).build(),
+                    .set_id(order_id.clone())
+                    .set_quantity(3)
+                    .build().unwrap(),
                 OrderStatus::Filled(
                     Execution::new(
                         symbol_id.clone(),
@@ -258,8 +263,10 @@ mod test {
         let model: Box<Model> = Box::new(MockModel { symbol: symbol_id.clone(), err: false });
         let strategy_manager = StrategyManager::new();
         let mut strategy_collection = StrategyCollection::new();
-        let order_id = OrderId::new();
-        let entry_order = OrderBuilder::unallocated(OrderKind::MarketOrder, symbol_id.clone(), Direction::Long).build();
+        let order_id = OrderId::from("executed entry order");
+        let entry_order = OrderBuilder::unallocated(
+            OrderKind::MarketOrder, symbol_id.clone(), Direction::Long
+        ).set_id(order_id.clone()).build().unwrap();
         let exit_strategy = model.exit_strategies(&entry_order).remove(0);
         strategy_collection.exit_strategies.insert(exit_strategy.id().clone(), exit_strategy);
         strategy_collection.order_strategy.insert(
@@ -277,7 +284,7 @@ mod test {
             &mut strategy_collection,
             &vec![(
                 &OrderBuilder::unallocated(OrderKind::MarketOrder, symbol_id.clone(), Direction::Long)
-                    .id(order_id.clone()).quantity(3).build(),
+                    .set_id(order_id.clone()).set_quantity(3).build().unwrap(),
                 OrderStatus::Filled(
                     Execution::new(
                         symbol_id.clone(),
@@ -298,8 +305,10 @@ mod test {
         let model: Box<Model> = Box::new(MockModel { symbol: symbol_id.clone(), err: false });
         let strategy_manager = StrategyManager::new();
         let mut strategy_collection = StrategyCollection::new();
-        let order_id = OrderId::new();
-        let entry_order = OrderBuilder::unallocated(OrderKind::MarketOrder, symbol_id.clone(), Direction::Long).build();
+        let order_id = OrderId::from("executed entry order");
+        let entry_order = OrderBuilder::unallocated(
+            OrderKind::MarketOrder, symbol_id.clone(), Direction::Long
+        ).set_id(order_id.clone()).build().unwrap();
         let exit_strategy = model.exit_strategies(&entry_order).remove(0);
         strategy_collection.exit_strategies.insert(exit_strategy.id().clone(), exit_strategy);
         strategy_collection.order_strategy.insert(
@@ -317,7 +326,7 @@ mod test {
             &mut strategy_collection,
             &vec![(
                 &OrderBuilder::unallocated(OrderKind::MarketOrder, symbol_id.clone(), Direction::Long)
-                    .id(order_id.clone()).build(),
+                    .set_id(order_id.clone()).build().unwrap(),
                 OrderStatus::Cancelled(CancellationReason::FilledOca)
             )]
         );
@@ -330,15 +339,19 @@ mod test {
         let models: Vec<Box<Model>> = vec![Box::new(MockModel { symbol: symbol.clone(), err: false })];
         let strategy_manager = StrategyManager::new();
         let mut strategy_collection = strategy_manager.initialize_strategy_collection(&models);
-        let orders = strategy_manager.run_strategies(&mut strategy_collection, &Utc.ymd(2016, 1, 3).and_hms(17, 0, 0)).unwrap();
-        assert!(orders.len() == 1);
+        let order_builders = strategy_manager.run_strategies(
+            &mut strategy_collection,
+            &Utc.ymd(2016, 1, 3).and_hms(17, 0, 0),
+            &OrderIdGenerator::new()
+        ).unwrap();
+        assert!(order_builders.len() == 1);
         let expected = OrderBuilder::unallocated(
             OrderKind::MarketOrder,
             symbol.clone(),
             Direction::Long
-        ).id(orders[0].id().clone()).build();
+        ).set_id(order_builders[0].id().clone().unwrap());
 
-        assert!(orders[0] == expected);
+        assert!(order_builders[0] == expected);
     }
 
     #[test]
@@ -347,7 +360,11 @@ mod test {
         let models: Vec<Box<Model>> = vec![Box::new(MockModel { symbol: symbol.clone(), err: true })];
         let strategy_manager = StrategyManager::new();
         let mut strategy_collection = strategy_manager.initialize_strategy_collection(&models);
-        let orders = strategy_manager.run_strategies(&mut strategy_collection, &Utc.ymd(2016, 1, 3).and_hms(17, 0, 0));
+        let orders = strategy_manager.run_strategies(
+            &mut strategy_collection,
+            &Utc.ymd(2016, 1, 3).and_hms(17, 0, 0),
+            &OrderIdGenerator::new()
+        );
         assert!(orders.is_err());
     }
 }

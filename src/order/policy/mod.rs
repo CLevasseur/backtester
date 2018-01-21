@@ -1,5 +1,5 @@
 use signal::Signal;
-use order::Order;
+use order::OrderBuilder;
 
 mod market_order_policy;
 pub use order::policy::market_order_policy::MarketOrderPolicy;
@@ -10,6 +10,6 @@ pub enum OrderPolicyError {
 }
 
 pub trait OrderPolicy {
-    fn create_order(&self, signal: Signal) -> Result<Order, OrderPolicyError>;
+    fn create_order(&self, signal: &Signal) -> Result<OrderBuilder, OrderPolicyError>;
 }
 

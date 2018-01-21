@@ -20,7 +20,7 @@ impl MarketSimulation {
         let mut oca_orders: HashMap<OcaGroup, Vec<&Order>> = HashMap::new();
 
         for order in orders {
-            if let Some(oca_group) = order.oca() {
+            if let &Some(oca_group) = order.oca() {
                 if filled_oca_groups.contains(&oca_group) {
                     updates.insert(
                         order.id().clone(),
@@ -66,7 +66,7 @@ impl MarketSimulation {
             };
 
             if is_executed {
-                if let Some(oca_group) = order.oca() {
+                if let &Some(oca_group) = order.oca() {
                     filled_oca_groups.insert(oca_group);
                     if let Some(filled_oca_orders) = oca_orders.get(&oca_group) {
                         for cancelled_order in filled_oca_orders {
@@ -111,7 +111,9 @@ mod test {
     fn update_market_order() {
         let market_simulation = MarketSimulation::new();
         let symbol_id = SymbolId::from("eur/usd");
-        let order = OrderBuilder::unallocated(OrderKind::MarketOrder, symbol_id.clone(), Direction::Long).build();
+        let order = OrderBuilder::unallocated(OrderKind::MarketOrder, symbol_id.clone(), Direction::Long )
+            .set_id(OrderId::from("test order"))
+            .build().unwrap();
         let updates = market_simulation.update_orders(
             vec![&order].into_iter(),
             &Ohlcv::new(symbol_id.clone(), Utc.ymd(2016, 1, 3).and_hms(17, 0, 0), 1., 2., 0., 1.5, 1)
@@ -136,8 +138,12 @@ mod test {
     fn update_limit_long_order() {
         let market_simulation = MarketSimulation::new();
         let symbol_id = SymbolId::from("eur/usd");
-        let executed_order = OrderBuilder::unallocated(OrderKind::LimitOrder(100.), symbol_id.clone(), Direction::Long).build();
-        let not_executed_order = OrderBuilder::unallocated(OrderKind::LimitOrder(99.), symbol_id.clone(), Direction::Long).build();
+        let executed_order = OrderBuilder::unallocated(
+            OrderKind::LimitOrder(100.), symbol_id.clone(), Direction::Long
+        ).set_id(OrderId::from("executed order")).build().unwrap();
+        let not_executed_order = OrderBuilder::unallocated(
+            OrderKind::LimitOrder(99.), symbol_id.clone(), Direction::Long
+        ).set_id(OrderId::from("not executed order")).build().unwrap();
         let updates = market_simulation.update_orders(
             vec![&executed_order, &not_executed_order].into_iter(),
             &Ohlcv::new(symbol_id.clone(), Utc.ymd(2016, 1, 3).and_hms(17, 0, 0), 0., 0., 99., 0., 1)
@@ -162,8 +168,12 @@ mod test {
     fn update_limit_short_order() {
         let market_simulation = MarketSimulation::new();
         let symbol_id = SymbolId::from("eur/usd");
-        let executed_order = OrderBuilder::unallocated(OrderKind::LimitOrder(100.), symbol_id.clone(), Direction::Short).build();
-        let not_executed_order = OrderBuilder::unallocated(OrderKind::LimitOrder(101.), symbol_id.clone(), Direction::Short).build();
+        let executed_order = OrderBuilder::unallocated(
+            OrderKind::LimitOrder(100.), symbol_id.clone(), Direction::Short
+        ).set_id(OrderId::from("executed order")).build().unwrap();
+        let not_executed_order = OrderBuilder::unallocated(
+            OrderKind::LimitOrder(101.), symbol_id.clone(), Direction::Short
+        ).set_id(OrderId::from("not executed order")).build().unwrap();
         let updates = market_simulation.update_orders(
             vec![&executed_order, &not_executed_order].into_iter(),
             &Ohlcv::new(symbol_id.clone(), Utc.ymd(2016, 1, 3).and_hms(17, 0, 0), 0., 101., 0., 0., 1)
@@ -189,8 +199,12 @@ mod test {
     fn update_stop_long_order() {
         let market_simulation = MarketSimulation::new();
         let symbol_id = SymbolId::from("eur/usd");
-        let executed_order = OrderBuilder::unallocated(OrderKind::StopOrder(100.), symbol_id.clone(), Direction::Long).build();
-        let not_executed_order = OrderBuilder::unallocated(OrderKind::StopOrder(101.), symbol_id.clone(), Direction::Long).build();
+        let executed_order = OrderBuilder::unallocated(
+            OrderKind::StopOrder(100.), symbol_id.clone(), Direction::Long
+        ).set_id(OrderId::from("executed order")).build().unwrap();
+        let not_executed_order = OrderBuilder::unallocated(
+            OrderKind::StopOrder(101.), symbol_id.clone(), Direction::Long
+        ).set_id(OrderId::from("not executed order")).build().unwrap();
         let updates = market_simulation.update_orders(
             vec![&executed_order, &not_executed_order].into_iter(),
             &Ohlcv::new(symbol_id.clone(), Utc.ymd(2016, 1, 3).and_hms(17, 0, 0), 0., 101., 0., 0., 1)
@@ -215,8 +229,12 @@ mod test {
     fn update_stop_short_order() {
         let market_simulation = MarketSimulation::new();
         let symbol_id = SymbolId::from("eur/usd");
-        let executed_order = OrderBuilder::unallocated(OrderKind::StopOrder(100.), symbol_id.clone(), Direction::Short).build();
-        let not_executed_order = OrderBuilder::unallocated(OrderKind::StopOrder(99.), symbol_id.clone(), Direction::Short).build();
+        let executed_order = OrderBuilder::unallocated(
+            OrderKind::StopOrder(100.), symbol_id.clone(), Direction::Short
+        ).set_id(OrderId::from("executed order")).build().unwrap();
+        let not_executed_order = OrderBuilder::unallocated(
+            OrderKind::StopOrder(99.), symbol_id.clone(), Direction::Short
+        ).set_id(OrderId::from("not executed order")).build().unwrap();
         let updates = market_simulation.update_orders(
             vec![&executed_order, &not_executed_order].into_iter(),
             &Ohlcv::new(symbol_id.clone(), Utc.ymd(2016, 1, 3).and_hms(17, 0, 0), 0., 0., 99., 0., 1)
@@ -241,9 +259,15 @@ mod test {
     fn update_oca() {
         let market_simulation = MarketSimulation::new();
         let symbol_id = SymbolId::from("eur/usd");
-        let not_executed_order_1 = OrderBuilder::unallocated(OrderKind::LimitOrder(100.), symbol_id.clone(), Direction::Short).oca(0).build();
-        let executed_order = OrderBuilder::unallocated(OrderKind::MarketOrder, symbol_id.clone(), Direction::Short).oca(0).build();
-        let not_executed_order_2 = OrderBuilder::unallocated(OrderKind::StopOrder(98.), symbol_id.clone(), Direction::Short).oca(0).build();
+        let not_executed_order_1 = OrderBuilder::unallocated(
+            OrderKind::LimitOrder(100.), symbol_id.clone(), Direction::Short
+        ).set_oca(0).set_id(OrderId::from("not executed order 1")).build().unwrap();
+        let executed_order = OrderBuilder::unallocated(
+            OrderKind::MarketOrder, symbol_id.clone(), Direction::Short
+        ).set_oca(0).set_id(OrderId::from("executed order")).build().unwrap();
+        let not_executed_order_2 = OrderBuilder::unallocated(
+            OrderKind::StopOrder(98.), symbol_id.clone(), Direction::Short
+        ).set_oca(0).set_id(OrderId::from("not executed order 2")).build().unwrap();
         let updates = market_simulation.update_orders(
             vec![&not_executed_order_1, &executed_order, &not_executed_order_2].into_iter(),
             &Ohlcv::new(symbol_id.clone(), Utc.ymd(2016, 1, 3).and_hms(17, 0, 0), 0., 0., 99., 0., 1)
@@ -270,10 +294,15 @@ mod test {
     fn update_outdated_order() {
         let market_simulation = MarketSimulation::new();
         let symbol_id = SymbolId::from("eur/usd");
-        let executed_order = OrderBuilder::unallocated(OrderKind::StopOrder(100.), symbol_id.clone(), Direction::Short).build();
-        let cancelled_order = OrderBuilder::unallocated(OrderKind::StopOrder(100.), symbol_id.clone(), Direction::Short)
-            .active_until(Utc.ymd(2016, 1, 3).and_hms(16, 59, 59))
-            .build();
+        let executed_order = OrderBuilder::unallocated(
+            OrderKind::StopOrder(100.), symbol_id.clone(), Direction::Short
+        ).set_id(OrderId::from("executed order")).build().unwrap();
+        let cancelled_order = OrderBuilder::unallocated(
+            OrderKind::StopOrder(100.), symbol_id.clone(), Direction::Short
+        )
+            .set_active_until(Utc.ymd(2016, 1, 3).and_hms(16, 59, 59))
+            .set_id(OrderId::from("cancelled order")).build().unwrap();
+
         let updates = market_simulation.update_orders(
             vec![&executed_order, &cancelled_order].into_iter(),
             &Ohlcv::new(symbol_id.clone(), Utc.ymd(2016, 1, 3).and_hms(17, 0, 0), 0., 0., 99., 0., 1)
@@ -299,10 +328,13 @@ mod test {
     fn update_inactive_order() {
         let market_simulation = MarketSimulation::new();
         let symbol_id = SymbolId::from("eur/usd");
-        let executed_order = OrderBuilder::unallocated(OrderKind::StopOrder(100.), symbol_id.clone(), Direction::Short).build();
+        let executed_order = OrderBuilder::unallocated(
+            OrderKind::StopOrder(100.), symbol_id.clone(), Direction::Short
+        ).set_id(OrderId::from("executed order")).build().unwrap();
         let not_executed_order = OrderBuilder::unallocated(OrderKind::StopOrder(100.), symbol_id.clone(), Direction::Short)
-            .active_after(Utc.ymd(2016, 1, 3).and_hms(17, 0, 1))
-            .build();
+            .set_active_after(Utc.ymd(2016, 1, 3).and_hms(17, 0, 1))
+            .set_id(OrderId::from("not executed order"))
+            .build().unwrap();
         let updates = market_simulation.update_orders(
             vec![&executed_order, &not_executed_order].into_iter(),
             &Ohlcv::new(symbol_id.clone(), Utc.ymd(2016, 1, 3).and_hms(17, 0, 0), 0., 0., 99., 0., 1)

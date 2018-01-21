@@ -6,6 +6,7 @@ use self::chrono::prelude::{DateTime, Utc};
 
 pub mod detector;
 
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 pub struct Signal {
     symbol_id: SymbolId,
     direction: Direction,

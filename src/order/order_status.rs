@@ -1,6 +1,6 @@
 use execution::Execution;
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 pub enum OrderStatus {
     NotSent,
     Sent,
@@ -8,7 +8,7 @@ pub enum OrderStatus {
     Cancelled(CancellationReason)
 }
 
-#[derive(Clone, Eq, PartialEq, Hash, Debug)]
+#[derive(Serialize, Deserialize, Clone, Eq, PartialEq, Hash, Debug)]
 pub enum CancellationReason {
     FilledOca,
     OutdatedOrder

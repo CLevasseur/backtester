@@ -2,7 +2,7 @@ extern crate chrono;
 use self::chrono::prelude::{DateTime, Utc};
 use symbol::SymbolId;
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 pub struct Execution {
     symbol_id: SymbolId,
     quantity: u32,

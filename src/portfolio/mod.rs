@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, HashMap};
 use order::{Order, OrderId, OrderStatus};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Portfolio {
     active_orders: BTreeMap<OrderId, Order>,
     closed_orders: BTreeMap<OrderId, Order>
@@ -18,7 +18,7 @@ impl Portfolio {
 
     pub fn add_orders(&mut self, orders: Vec<Order>) {
         for order in orders {
-            self.active_orders.insert(order.id().clone(), order);
+            assert_eq!(self.active_orders.insert(order.id().clone(), order), None);
         }
     }
 
@@ -72,7 +72,7 @@ mod test {
         let symbol_id = SymbolId::from("Symbol");
         let order = OrderBuilder::unallocated(
             OrderKind::MarketOrder, symbol_id.clone(), Direction::Long
-        ).build();
+        ).set_id(OrderId::from("test order")).build().unwrap();
         let mut portfolio = Portfolio::new();
         assert!(portfolio.active_orders().is_empty());
         portfolio.add_orders(vec![order.clone()]);

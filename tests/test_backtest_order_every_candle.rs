@@ -1,7 +1,10 @@
 extern crate backtester;
 extern crate chrono;
 extern crate csv;
+extern crate serde_json;
 
+use std::fs::File;
+use std::io::Write;
 use chrono::prelude::{DateTime, Utc, TimeZone};
 use backtester::ohlcv::source::{OhlcvSource, CsvOhlcvSource};
 use backtester::backtester::Backtester;
@@ -72,11 +75,14 @@ fn backtest_order_every_candle() {
 
     // launch backtest
     let backtester = Backtester::new();
-    backtester.run(
+    let portfolio = backtester.run(
         &vec![Box::new(OrderEveryCandle { symbol_id: symbol_id.clone() })],
         source.ohlcv(
             &Utc.ymd(2016, 6, 1).and_hms(0, 0, 0),
             &Utc.ymd(2016, 12, 1).and_hms(0, 0, 0)
         ).unwrap().into_iter()
     ).unwrap();
+
+    let mut f = File::create("/tmp/portfolio.json").unwrap();
+    f.write_all(serde_json::to_string(&portfolio).unwrap().as_bytes()).unwrap();
 }

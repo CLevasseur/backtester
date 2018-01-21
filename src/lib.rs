@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate serde_derive;
+
 pub mod ohlcv;
 pub mod symbol;
 pub mod signal;
