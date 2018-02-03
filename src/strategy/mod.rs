@@ -9,7 +9,7 @@ use signal::Signal;
 use signal::detector::{DetectSignal, DetectSignalError};
 use order::OrderBuilder;
 use order::policy::{OrderPolicy, OrderPolicyError};
-pub use strategy::strategy_manager::{StrategyManager, StrategyCollection};
+pub use strategy::strategy_manager::{StrategyManager, StrategyCollection, StrategyType};
 
 
 pub type StrategyId = ProcessUniqueId;

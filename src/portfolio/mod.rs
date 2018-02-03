@@ -1,24 +1,29 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::HashMap;
 use order::{Order, OrderId, OrderStatus};
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Portfolio {
-    active_orders: BTreeMap<OrderId, Order>,
-    closed_orders: BTreeMap<OrderId, Order>
+    active_orders: HashMap<OrderId, Order>,
+    closed_orders: HashMap<OrderId, Order>
 }
 
 impl Portfolio {
 
     pub fn new() -> Portfolio {
         Portfolio {
-            active_orders: BTreeMap::new(),
-            closed_orders: BTreeMap::new()
+            active_orders: HashMap::new(),
+            closed_orders: HashMap::new()
         }
     }
 
     pub fn add_orders(&mut self, orders: Vec<Order>) {
         for order in orders {
-            assert_eq!(self.active_orders.insert(order.id().clone(), order), None);
+            let mut property = match *order.status() {
+                OrderStatus::Filled(_) => &mut self.closed_orders,
+                OrderStatus::Cancelled(_) => &mut self.closed_orders,
+                _ => &mut self.active_orders
+            };
+            assert_eq!(property.insert(order.id().clone(), order), None);
         }
     }
 
@@ -46,15 +51,15 @@ impl Portfolio {
                     _ => ()
                 }
             },
-            None => panic!("Order not found: {}", order_id)  // TODO: raise err
+            None => panic!("Order not found: {}", order_id)
         };
     }
 
-    pub fn active_orders(&self) -> &BTreeMap<OrderId, Order> {
+    pub fn active_orders(&self) -> &HashMap<OrderId, Order> {
         &self.active_orders
     }
 
-    pub fn closed_orders(&self) -> &BTreeMap<OrderId, Order> {
+    pub fn closed_orders(&self) -> &HashMap<OrderId, Order> {
         &self.closed_orders
     }
 
@@ -78,7 +83,7 @@ mod test {
         portfolio.add_orders(vec![order.clone()]);
         assert_eq!(
             portfolio.active_orders(),
-            &[(order.id().clone(), order)].iter().cloned().collect::<BTreeMap<OrderId, Order>>()
+            &[(order.id().clone(), order)].iter().cloned().collect::<HashMap<OrderId, Order>>()
         );
     }
 }

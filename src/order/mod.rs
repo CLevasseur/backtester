@@ -73,12 +73,12 @@ impl Order {
         &self.oca
     }
 
-    pub fn active_until(&self) -> Option<DateTime<Utc>> {
-        self.active_until
+    pub fn active_until(&self) -> &Option<DateTime<Utc>> {
+        &self.active_until
     }
 
-    pub fn active_after(&self) -> Option<DateTime<Utc>> {
-        self.active_after
+    pub fn active_after(&self) -> &Option<DateTime<Utc>> {
+        &self.active_after
     }
 }
 

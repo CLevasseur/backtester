@@ -19,4 +19,20 @@ impl Execution {
             datetime
         }
     }
+
+    pub fn symbol_id(&self) -> &SymbolId {
+        &self.symbol_id
+    }
+
+    pub fn quantity(&self) -> &u32 {
+        &self.quantity
+    }
+
+    pub fn price(&self) -> &f64 {
+        &self.price
+    }
+
+    pub fn datetime(&self) -> &DateTime<Utc> {
+        &self.datetime
+    }
 }

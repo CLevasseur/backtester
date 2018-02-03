@@ -4,7 +4,7 @@ extern crate csv;
 extern crate serde_json;
 
 use std::fs::File;
-use std::io::Write;
+use std::io;
 use chrono::prelude::{DateTime, Utc, TimeZone};
 use backtester::ohlcv::source::{OhlcvSource, CsvOhlcvSource};
 use backtester::backtester::Backtester;
@@ -17,6 +17,7 @@ use backtester::order::policy::MarketOrderPolicy;
 use backtester::symbol::SymbolId;
 use backtester::signal::Signal;
 use backtester::util::record_parser::RecordParser;
+use backtester::util::{get_order_pairs, write_order_pairs_to_csv};
 
 
 pub struct AlwaysDetectSignal {
@@ -75,14 +76,15 @@ fn backtest_order_every_candle() {
 
     // launch backtest
     let backtester = Backtester::new();
-    let portfolio = backtester.run(
-        &vec![Box::new(OrderEveryCandle { symbol_id: symbol_id.clone() })],
+    let models: Vec<Box<Model>> = vec![Box::new(OrderEveryCandle { symbol_id: symbol_id.clone() })];
+    let (portfolio, strategy_collection) = backtester.run(
+        &models,
         source.ohlcv(
             &Utc.ymd(2016, 6, 1).and_hms(0, 0, 0),
             &Utc.ymd(2016, 12, 1).and_hms(0, 0, 0)
         ).unwrap().into_iter()
     ).unwrap();
 
-    let mut f = File::create("/tmp/portfolio.json").unwrap();
-    f.write_all(serde_json::to_string(&portfolio).unwrap().as_bytes()).unwrap();
+    let mut writer = csv::Writer::from_path("/tmp/result.csv").unwrap();
+    write_order_pairs_to_csv(&mut writer, &get_order_pairs(&portfolio, &strategy_collection));
 }

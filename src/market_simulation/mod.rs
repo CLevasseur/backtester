@@ -32,7 +32,7 @@ impl MarketSimulation {
                 oca_orders.entry(oca_group).or_insert(vec![]).push(&order);
             }
 
-            if let Some(active_until) = order.active_until() {
+            if let &Some(active_until) = order.active_until() {
                 if &active_until <= ohlcv.datetime() {
                     updates.insert(
                         order.id().clone(),
@@ -47,7 +47,7 @@ impl MarketSimulation {
                 continue
             }
 
-            if let Some(active_after) = order.active_after() {
+            if let &Some(active_after) = order.active_after() {
                 if &active_after > ohlcv.datetime() {
                     continue;
                 }

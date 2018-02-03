@@ -8,14 +8,14 @@ use order::{Order, OrderId, OrderStatus, OrderIdGenerator, OrderBuilder};
 
 pub enum StrategyType<'model> {
     EntryStrategy(StrategyId, &'model Model),
-    ExitStrategy(StrategyId, &'model Model)
+    ExitStrategy(StrategyId, &'model Model, OrderId)
 }
 
 pub struct StrategyCollection<'model> {
     pub entry_strategies: Vec<Strategy>,
     pub exit_strategies: BTreeMap<StrategyId, Strategy>,
     pub order_strategy: HashMap<OrderId, StrategyId>,
-    pub strategy_types: HashMap<StrategyId, StrategyType<'model>>
+    pub strategy_types: HashMap<StrategyId, StrategyType<'model>>,
 }
 
 impl<'model> StrategyCollection<'model> {
@@ -117,7 +117,7 @@ impl StrategyManager {
                     }
                 },
                 // Remove corresponding exit strategy when exit order is executed
-                &StrategyType::ExitStrategy(_strategy_id, _model) => {
+                &StrategyType::ExitStrategy(_strategy_id, _model, ref _entry_order_id) => {
                     match order_status {
                         &OrderStatus::Filled(_) => {
                             Some(StrategiesUpdate::RemoveExitStrategy(*strategy_id))
@@ -138,7 +138,11 @@ impl StrategyManager {
                     for strategy in new_strategies {
                         strategies.strategy_types.insert(
                             strategy.id().clone(),
-                            StrategyType::ExitStrategy(strategy.id().clone(), model)
+                            StrategyType::ExitStrategy(
+                                strategy.id().clone(),
+                                model,
+                                closed_order.id().clone()
+                            )
                         );
                         strategies.exit_strategies.insert(strategy.id().clone(), strategy);
                     }
@@ -263,28 +267,30 @@ mod test {
         let model: Box<Model> = Box::new(MockModel { symbol: symbol_id.clone(), err: false });
         let strategy_manager = StrategyManager::new();
         let mut strategy_collection = StrategyCollection::new();
-        let order_id = OrderId::from("executed entry order");
+        let entry_order_id = OrderId::from("executed entry order");
+        let exit_order_id = OrderId::from("exit order");
         let entry_order = OrderBuilder::unallocated(
             OrderKind::MarketOrder, symbol_id.clone(), Direction::Long
-        ).set_id(order_id.clone()).build().unwrap();
+        ).set_id(entry_order_id.clone()).build().unwrap();
         let exit_strategy = model.exit_strategies(&entry_order).remove(0);
         strategy_collection.exit_strategies.insert(exit_strategy.id().clone(), exit_strategy);
         strategy_collection.order_strategy.insert(
-            order_id.clone(),
+            exit_order_id.clone(),
             strategy_collection.exit_strategies.keys().next().unwrap().clone()
         );
         strategy_collection.strategy_types.insert(
             strategy_collection.exit_strategies.keys().next().unwrap().clone(),
             StrategyType::ExitStrategy(
                 strategy_collection.exit_strategies.keys().next().unwrap().clone(),
-                &model
+                &model,
+                entry_order_id.clone()
             )
         );
         strategy_manager.update_strategies(
             &mut strategy_collection,
             &vec![(
                 &OrderBuilder::unallocated(OrderKind::MarketOrder, symbol_id.clone(), Direction::Long)
-                    .set_id(order_id.clone()).set_quantity(3).build().unwrap(),
+                    .set_id(exit_order_id.clone()).set_quantity(3).build().unwrap(),
                 OrderStatus::Filled(
                     Execution::new(
                         symbol_id.clone(),
@@ -305,28 +311,30 @@ mod test {
         let model: Box<Model> = Box::new(MockModel { symbol: symbol_id.clone(), err: false });
         let strategy_manager = StrategyManager::new();
         let mut strategy_collection = StrategyCollection::new();
-        let order_id = OrderId::from("executed entry order");
+        let entry_order_id = OrderId::from("executed entry order");
+        let exit_order_id = OrderId::from("exit order");
         let entry_order = OrderBuilder::unallocated(
             OrderKind::MarketOrder, symbol_id.clone(), Direction::Long
-        ).set_id(order_id.clone()).build().unwrap();
+        ).set_id(entry_order_id.clone()).build().unwrap();
         let exit_strategy = model.exit_strategies(&entry_order).remove(0);
         strategy_collection.exit_strategies.insert(exit_strategy.id().clone(), exit_strategy);
         strategy_collection.order_strategy.insert(
-            order_id.clone(),
+            exit_order_id.clone(),
             strategy_collection.exit_strategies.keys().next().unwrap().clone()
         );
         strategy_collection.strategy_types.insert(
             strategy_collection.exit_strategies.keys().next().unwrap().clone(),
             StrategyType::ExitStrategy(
                 strategy_collection.exit_strategies.keys().next().unwrap().clone(),
-                &model
+                &model,
+                entry_order_id.clone()
             )
         );
         strategy_manager.update_strategies(
             &mut strategy_collection,
             &vec![(
                 &OrderBuilder::unallocated(OrderKind::MarketOrder, symbol_id.clone(), Direction::Long)
-                    .set_id(order_id.clone()).build().unwrap(),
+                    .set_id(exit_order_id.clone()).build().unwrap(),
                 OrderStatus::Cancelled(CancellationReason::FilledOca)
             )]
         );
