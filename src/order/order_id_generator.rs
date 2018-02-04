@@ -22,13 +22,13 @@ impl<M: GenerateOrderId + ?Sized> GenerateOrderId for Box<M> {
 
 }
 
-pub struct OrderIdGenerator;
+pub struct UUIDOrderIdGenerator;
 
-impl OrderIdGenerator {
-    pub fn new() -> Self { OrderIdGenerator {} }
+impl UUIDOrderIdGenerator {
+    pub fn new() -> Self { UUIDOrderIdGenerator {} }
 }
 
-impl GenerateOrderId for OrderIdGenerator {
+impl GenerateOrderId for UUIDOrderIdGenerator {
 
     fn get_id(&self, strategy_id: StrategyId, signal: &Signal, _order_builder: &OrderBuilder)
         -> OrderId

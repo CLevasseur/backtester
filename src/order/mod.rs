@@ -14,7 +14,7 @@ use self::chrono::prelude::{DateTime, Utc};
 use direction::Direction;
 use symbol::SymbolId;
 pub use self::order_id::OrderId;
-pub use self::order_id_generator::{OrderIdGenerator, GenerateOrderId};
+pub use self::order_id_generator::{UUIDOrderIdGenerator, GenerateOrderId};
 pub use self::order_status::{OrderStatus, CancellationReason};
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]

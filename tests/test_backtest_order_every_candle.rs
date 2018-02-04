@@ -4,8 +4,6 @@ extern crate time;
 extern crate csv;
 extern crate serde_json;
 
-use std::fs::File;
-use std::io;
 use std::cell::Cell;
 use chrono::prelude::{DateTime, Utc, TimeZone};
 use backtester::ohlcv::source::{OhlcvSource, CsvOhlcvSource};
@@ -127,7 +125,7 @@ impl Model for OrderEveryCandle {
                 Box::new(StopOrderPolicy::new(execution.price() - 0.0005))
             );
 
-            return vec![stop_loss_strategy]
+            return vec![timeout_strategy, stop_loss_strategy]
         }
 
         panic!("Entry order not executed: {:#?}", order)
@@ -159,5 +157,6 @@ fn backtest_order_every_candle() {
     println!("End backtesting at {}", Utc::now());
 
     let mut writer = csv::Writer::from_path("/tmp/result.csv").unwrap();
-    write_order_pairs_to_csv(&mut writer, &get_order_pairs(&portfolio, &strategy_collection));
+    write_order_pairs_to_csv(&mut writer, &get_order_pairs(&portfolio, &strategy_collection))
+        .expect("Failed to write order pairs to csv");
 }

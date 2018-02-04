@@ -6,7 +6,7 @@ use ohlcv::Ohlcv;
 use market_simulation::MarketSimulation;
 use portfolio::Portfolio;
 use strategy::{StrategyManager, StrategyError, StrategyCollection};
-use order::{GenerateOrderId, OrderIdGenerator};
+use order::{GenerateOrderId, UUIDOrderIdGenerator};
 
 
 pub struct Backtester {
@@ -27,7 +27,7 @@ impl Backtester {
         Backtester {
             market_simulation: MarketSimulation::new(),
             strategy_manager: StrategyManager::new(),
-            order_id_generator: Box::new(OrderIdGenerator::new())
+            order_id_generator: Box::new(UUIDOrderIdGenerator::new())
         }
     }
 
@@ -156,8 +156,8 @@ mod test {
     }
 
     impl GenerateOrderId for IncrementalOrderIdGenerator {
-        fn get_id(&self, strategy_id: StrategyId, signal: &Signal,
-                  order_builder: &OrderBuilder) -> OrderId
+        fn get_id(&self, _strategy_id: StrategyId, _signal: &Signal,
+                  _order_builder: &OrderBuilder) -> OrderId
         {
             let id = self.counter.get();
             self.counter.set(id + 1);
@@ -186,7 +186,7 @@ mod test {
 
         let mut active_orders = portfolio.active_orders().values().collect::<Vec<&Order>>();
         assert_eq!(active_orders.len(), 2);
-        let mut closed_orders = portfolio.closed_orders().values().collect::<Vec<&Order>>();
+        let closed_orders = portfolio.closed_orders().values().collect::<Vec<&Order>>();
         assert_eq!(closed_orders.len(), 1);
 
         let expected_active_orders: Vec<Order> = vec![

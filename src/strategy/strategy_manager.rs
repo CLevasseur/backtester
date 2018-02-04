@@ -165,7 +165,7 @@ enum StrategiesUpdate<'model> {
 mod test {
     use super::*;
     use self::chrono::prelude::{TimeZone};
-    use order::{Order, OrderBuilder, OrderKind, CancellationReason, OrderIdGenerator};
+    use order::{Order, OrderBuilder, OrderKind, CancellationReason, UUIDOrderIdGenerator};
     use signal::Signal;
     use signal::detector::{DetectSignal, DetectSignalError};
     use symbol::SymbolId;
@@ -350,7 +350,7 @@ mod test {
         let order_builders = strategy_manager.run_strategies(
             &mut strategy_collection,
             &Utc.ymd(2016, 1, 3).and_hms(17, 0, 0),
-            &OrderIdGenerator::new()
+            &UUIDOrderIdGenerator::new()
         ).unwrap();
         assert!(order_builders.len() == 1);
         let expected = OrderBuilder::unallocated(
@@ -371,7 +371,7 @@ mod test {
         let orders = strategy_manager.run_strategies(
             &mut strategy_collection,
             &Utc.ymd(2016, 1, 3).and_hms(17, 0, 0),
-            &OrderIdGenerator::new()
+            &UUIDOrderIdGenerator::new()
         );
         assert!(orders.is_err());
     }

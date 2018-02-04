@@ -29,7 +29,7 @@ pub fn get_order_pairs<'a>(portfolio: &'a Portfolio,
             .expect(format!("Can't find strategy type for strategy #{}", strategy_id).as_str());
 
         if let &StrategyType::ExitStrategy(_strategy_id, _model, ref entry_order_id) = strategy_type {
-            if let &OrderStatus::Filled(ref execution) = order.status() {
+            if let &OrderStatus::Filled(_) = order.status() {
                 result.push(OrderPair {
                     entry_order: portfolio.closed_orders().get(entry_order_id).unwrap(),
                     exit_order: order
@@ -159,7 +159,6 @@ mod test {
             )
         );
 
-        let mut closed_orders = portfolio.closed_orders();
         assert_eq!(
             get_order_pairs(&portfolio, &strategy_collection),
             vec![
