@@ -6,13 +6,13 @@ use ohlcv::Ohlcv;
 use market_simulation::MarketSimulation;
 use portfolio::Portfolio;
 use strategy::{StrategyManager, StrategyError, StrategyCollection};
-use order::OrderIdGenerator;
+use order::{GenerateOrderId, OrderIdGenerator};
 
 
 pub struct Backtester {
     market_simulation: MarketSimulation,
     strategy_manager: StrategyManager,
-    order_id_generator: OrderIdGenerator
+    order_id_generator: Box<GenerateOrderId>
 }
 
 #[derive(Debug, Clone)]
@@ -27,7 +27,7 @@ impl Backtester {
         Backtester {
             market_simulation: MarketSimulation::new(),
             strategy_manager: StrategyManager::new(),
-            order_id_generator: OrderIdGenerator::new()
+            order_id_generator: Box::new(OrderIdGenerator::new())
         }
     }
 
@@ -41,13 +41,13 @@ impl Backtester {
         for o in ohlcv {
             let updates = self.market_simulation.update_orders(portfolio.active_orders().values(), &o);
 
+            portfolio.update_orders(&updates);
             self.strategy_manager.update_strategies(
                 &mut strategy_collection,
                 &updates.iter().map(
-                    |update| (portfolio.active_orders().get(update.0).unwrap(), update.1.clone())
+                    |update| (portfolio.closed_orders().get(update.0).unwrap(), update.1.clone())
                 ).collect()
             );
-            portfolio.update_orders(&updates);
 
             // run strategies only once per date, multiple ohlcv can have the same datetime
             // when there is more than one symbol
@@ -75,7 +75,7 @@ impl Backtester {
         &self.market_simulation
     }
 
-    pub fn set_market_simulation(&mut self, market_simulation: MarketSimulation) -> &Self {
+    pub fn set_market_simulation(mut self, market_simulation: MarketSimulation) -> Self {
         self.market_simulation = market_simulation;
         self
     }
@@ -84,8 +84,17 @@ impl Backtester {
         &self.strategy_manager
     }
 
-    pub fn set_strategy_manager(&mut self, strategy_manager: StrategyManager) -> &Self {
+    pub fn set_strategy_manager(mut self, strategy_manager: StrategyManager) -> Self {
         self.strategy_manager = strategy_manager;
+        self
+    }
+
+    pub fn order_id_generator(&self) -> &Box<GenerateOrderId> {
+        &self.order_id_generator
+    }
+
+    pub fn set_order_id_generator(mut self, order_id_generator: Box<GenerateOrderId>) -> Self {
+        self.order_id_generator = order_id_generator;
         self
     }
 }
@@ -94,14 +103,16 @@ impl Backtester {
 mod test {
     use super::*;
     extern crate chrono;
+    use std::cell::Cell;
     use self::chrono::prelude::{DateTime, Utc, TimeZone};
     use backtester::Backtester;
     use model::{Model, ModelId};
     use strategy::Strategy;
     use signal::detector::{DetectSignal, DetectSignalError};
     use direction::Direction;
-    use order::{Order, OrderBuilder, OrderKind, OrderStatus};
+    use order::{Order, OrderId, OrderBuilder, OrderKind, OrderStatus};
     use order::policy::MarketOrderPolicy;
+    use strategy::StrategyId;
     use execution::Execution;
     use symbol::SymbolId;
     use signal::Signal;
@@ -140,9 +151,28 @@ mod test {
 
     }
 
+    pub struct IncrementalOrderIdGenerator {
+        counter: Cell<u32>
+    }
+
+    impl GenerateOrderId for IncrementalOrderIdGenerator {
+        fn get_id(&self, strategy_id: StrategyId, signal: &Signal,
+                  order_builder: &OrderBuilder) -> OrderId
+        {
+            let id = self.counter.get();
+            self.counter.set(id + 1);
+            id.to_string()
+        }
+    }
+
+
     #[test]
     fn test_run() {
-        let backtester = Backtester::new();
+        let backtester = Backtester::new().set_order_id_generator(
+            Box::new(IncrementalOrderIdGenerator { counter: Cell::new(0) })
+        );
+
+
         let models: Vec<Box<Model>> = vec![Box::new(OrderEveryCandle {})];
         let (portfolio, strategy_collection) = backtester.run(
             &models,
@@ -154,27 +184,27 @@ mod test {
             ].into_iter()
         ).unwrap();
 
-        let active_orders = portfolio.active_orders().values().collect::<Vec<&Order>>();
+        let mut active_orders = portfolio.active_orders().values().collect::<Vec<&Order>>();
         assert_eq!(active_orders.len(), 2);
-        let closed_orders = portfolio.closed_orders().values().collect::<Vec<&Order>>();
+        let mut closed_orders = portfolio.closed_orders().values().collect::<Vec<&Order>>();
         assert_eq!(closed_orders.len(), 1);
 
         let expected_active_orders: Vec<Order> = vec![
             // Long order from the second detection made by the entry strategy
             OrderBuilder::unallocated(
                 OrderKind::MarketOrder, SymbolId::from("eur/usd"), Direction::Long
-            ).set_id(active_orders[0].id().clone()).build().unwrap(),
+            ).set_id(String::from("1")).build().unwrap(),
             // Short order from the exit strategy linked to the first entry order
             OrderBuilder::unallocated(
                 OrderKind::MarketOrder, SymbolId::from("eur/usd"), Direction::Short
-            ).set_id(active_orders[1].id().clone()).build().unwrap()
+            ).set_id(String::from("2")).build().unwrap()
         ];
         let expected_closed_orders: Vec<Order> = vec![
             // First entry order has been filled
             OrderBuilder::unallocated(
                 OrderKind::MarketOrder, SymbolId::from("eur/usd"), Direction::Long
             )
-                .set_id(closed_orders[0].id().clone())
+                .set_id(String::from("0"))
                 .set_status(
                     OrderStatus::Filled(
                         Execution::new(
@@ -187,14 +217,15 @@ mod test {
                 ).build().unwrap()
         ];
 
-//        assert_eq!(
-//            active_orders,
-//            expected_active_orders.iter().collect::<Vec<&Order>>()
-//        );
-//        assert_eq!(
-//            closed_orders,
-//            expected_closed_orders.iter().collect::<Vec<&Order>>()
-//        );
+        active_orders.sort_by_key(|order| order.id());
+        assert_eq!(
+            active_orders,
+            expected_active_orders.iter().collect::<Vec<&Order>>()
+        );
+        assert_eq!(
+            closed_orders,
+            expected_closed_orders.iter().collect::<Vec<&Order>>()
+        );
     }
 
 }

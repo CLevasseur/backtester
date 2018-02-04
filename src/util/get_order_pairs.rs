@@ -38,7 +38,7 @@ pub fn get_order_pairs<'a>(portfolio: &'a Portfolio,
         }
     }
 
-    result.sort_by_key(|order_pair| get_execution_datetime(order_pair.exit_order));
+    result.sort_by_key(|order_pair| get_execution_datetime(order_pair.entry_order));
     result
 }
 

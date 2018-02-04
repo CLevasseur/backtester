@@ -4,7 +4,7 @@ use std::collections::{HashMap, BTreeMap};
 use self::chrono::prelude::{DateTime, Utc};
 use model::Model;
 use strategy::{Strategy, StrategyError, StrategyId};
-use order::{Order, OrderId, OrderStatus, OrderIdGenerator, OrderBuilder};
+use order::{Order, OrderId, OrderStatus, GenerateOrderId, OrderBuilder};
 
 pub enum StrategyType<'model> {
     EntryStrategy(StrategyId, &'model Model),
@@ -59,7 +59,7 @@ impl StrategyManager {
 
     /// Run all strategies of the collection at the specified date
     pub fn run_strategies(&self, strategies: &mut StrategyCollection, datetime: &DateTime<Utc>,
-                          order_id_generator: &OrderIdGenerator) -> Result<Vec<OrderBuilder>, StrategyError>
+                          order_id_generator: &GenerateOrderId) -> Result<Vec<OrderBuilder>, StrategyError>
     {
         let mut order_builders = vec![];
 

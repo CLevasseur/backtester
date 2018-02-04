@@ -5,12 +5,32 @@ use strategy::StrategyId;
 use order::{OrderId, OrderBuilder};
 use signal::Signal;
 
+pub trait GenerateOrderId {
+
+    fn get_id(&self, strategy_id: StrategyId, signal: &Signal,
+                  order_builder: &OrderBuilder) -> OrderId;
+
+}
+
+impl<M: GenerateOrderId + ?Sized> GenerateOrderId for Box<M> {
+
+    fn get_id(&self, strategy_id: StrategyId, signal: &Signal,
+              order_builder: &OrderBuilder) -> OrderId
+    {
+        (**self).get_id(strategy_id, signal, order_builder)
+    }
+
+}
+
 pub struct OrderIdGenerator;
 
 impl OrderIdGenerator {
     pub fn new() -> Self { OrderIdGenerator {} }
+}
 
-    pub fn get_id(&self, strategy_id: StrategyId, signal: &Signal, _order_builder: &OrderBuilder)
+impl GenerateOrderId for OrderIdGenerator {
+
+    fn get_id(&self, strategy_id: StrategyId, signal: &Signal, _order_builder: &OrderBuilder)
         -> OrderId
     {
         Uuid::new_v5(
@@ -18,4 +38,5 @@ impl OrderIdGenerator {
             format!("{} - {}", strategy_id, signal.datetime()).as_str()
         ).hyphenated().to_string()
     }
+
 }
