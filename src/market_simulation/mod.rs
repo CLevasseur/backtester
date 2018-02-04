@@ -20,8 +20,8 @@ impl MarketSimulation {
         let mut oca_orders: HashMap<OcaGroup, Vec<&Order>> = HashMap::new();
 
         for order in orders {
-            if let &Some(oca_group) = order.oca() {
-                if filled_oca_groups.contains(&oca_group) {
+            if let &Some(ref oca_group) = order.oca() {
+                if filled_oca_groups.contains(oca_group) {
                     updates.insert(
                         order.id().clone(),
                         OrderStatus::Cancelled(CancellationReason::FilledOca)
@@ -29,7 +29,7 @@ impl MarketSimulation {
                     continue;
                 }
 
-                oca_orders.entry(oca_group).or_insert(vec![]).push(&order);
+                oca_orders.entry(oca_group.clone()).or_insert(vec![]).push(&order);
             }
 
             if let &Some(active_until) = order.active_until() {
@@ -66,9 +66,9 @@ impl MarketSimulation {
             };
 
             if is_executed {
-                if let &Some(oca_group) = order.oca() {
-                    filled_oca_groups.insert(oca_group);
-                    if let Some(filled_oca_orders) = oca_orders.get(&oca_group) {
+                if let &Some(ref oca_group) = order.oca() {
+                    filled_oca_groups.insert(oca_group.clone());
+                    if let Some(filled_oca_orders) = oca_orders.get(oca_group) {
                         for cancelled_order in filled_oca_orders {
                             updates.insert(
                                 cancelled_order.id().clone(),
@@ -261,13 +261,13 @@ mod test {
         let symbol_id = SymbolId::from("eur/usd");
         let not_executed_order_1 = OrderBuilder::unallocated(
             OrderKind::LimitOrder(100.), symbol_id.clone(), Direction::Short
-        ).set_oca(0).set_id(OrderId::from("not executed order 1")).build().unwrap();
+        ).set_oca(String::from("0")).set_id(OrderId::from("not executed order 1")).build().unwrap();
         let executed_order = OrderBuilder::unallocated(
             OrderKind::MarketOrder, symbol_id.clone(), Direction::Short
-        ).set_oca(0).set_id(OrderId::from("executed order")).build().unwrap();
+        ).set_oca(String::from("0")).set_id(OrderId::from("executed order")).build().unwrap();
         let not_executed_order_2 = OrderBuilder::unallocated(
             OrderKind::StopOrder(98.), symbol_id.clone(), Direction::Short
-        ).set_oca(0).set_id(OrderId::from("not executed order 2")).build().unwrap();
+        ).set_oca(String::from("0")).set_id(OrderId::from("not executed order 2")).build().unwrap();
         let updates = market_simulation.update_orders(
             vec![&not_executed_order_1, &executed_order, &not_executed_order_2].into_iter(),
             &Ohlcv::new(symbol_id.clone(), Utc.ymd(2016, 1, 3).and_hms(17, 0, 0), 0., 0., 99., 0., 1)

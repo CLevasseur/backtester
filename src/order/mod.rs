@@ -24,7 +24,7 @@ pub enum OrderKind {
     StopOrder(f64)
 }
 
-pub type OcaGroup = u32;
+pub type OcaGroup = String;
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 pub struct Order {
@@ -82,7 +82,7 @@ impl Order {
     }
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct OrderBuilder {
     id: Option<OrderId>,
     symbol_id: SymbolId,

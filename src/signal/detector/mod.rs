@@ -5,6 +5,8 @@ use self::chrono::prelude::{DateTime, Utc};
 
 mod once;
 pub use signal::detector::once::Once;
+mod always;
+pub use signal::detector::always::Always;
 
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub enum DetectSignalError {
