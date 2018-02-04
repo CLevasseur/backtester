@@ -13,6 +13,7 @@ pub mod policy;
 use self::chrono::prelude::{DateTime, Utc};
 use direction::Direction;
 use symbol::SymbolId;
+use execution::Execution;
 pub use self::order_id::OrderId;
 pub use self::order_id_generator::{UUIDOrderIdGenerator, GenerateOrderId};
 pub use self::order_status::{OrderStatus, CancellationReason};
@@ -80,6 +81,14 @@ impl Order {
     pub fn active_after(&self) -> &Option<DateTime<Utc>> {
         &self.active_after
     }
+
+    pub fn execution(&self) -> Option<&Execution> {
+        match *self.status() {
+            OrderStatus::Filled(ref execution) => Some(execution),
+            _ => None
+        }
+    }
+
 }
 
 #[derive(Clone, PartialEq, Debug)]
@@ -147,8 +156,8 @@ impl OrderBuilder {
         &self.oca
     }
 
-    pub fn set_oca(mut self, value: OcaGroup) -> Self {
-        self.oca = Some(value);
+    pub fn set_oca(mut self, value: Option<OcaGroup>) -> Self {
+        self.oca = value;
         self
     }
 
@@ -156,8 +165,8 @@ impl OrderBuilder {
         &self.active_until
     }
 
-    pub fn set_active_until(mut self, value: DateTime<Utc>) -> Self {
-        self.active_until = Some(value);
+    pub fn set_active_until(mut self, value: Option<DateTime<Utc>>) -> Self {
+        self.active_until = value;
         self
     }
 
@@ -174,8 +183,8 @@ impl OrderBuilder {
         &self.active_after
     }
 
-    pub fn set_active_after(mut self, value: DateTime<Utc>) -> Self {
-        self.active_after = Some(value);
+    pub fn set_active_after(mut self, value: Option<DateTime<Utc>>) -> Self {
+        self.active_after = value;
         self
     }
 

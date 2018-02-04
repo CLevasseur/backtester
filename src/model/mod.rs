@@ -7,7 +7,7 @@ pub trait Model {
     
     fn id(&self) -> ModelId;
     fn entry_strategy(&self) -> Strategy;
-    fn exit_strategies(&self, order: &Order) -> Vec<Strategy>;
+    fn exit_strategies(&self, entry_order: &Order) -> Vec<Strategy>;
 
 }
 
@@ -21,8 +21,8 @@ impl<M: Model + ?Sized> Model for Box<M> {
         (**self).entry_strategy()
     }
 
-    fn exit_strategies(&self, order: &Order) -> Vec<Strategy> {
-        (**self).exit_strategies(order)
+    fn exit_strategies(&self, entry_order: &Order) -> Vec<Strategy> {
+        (**self).exit_strategies(entry_order)
     }
 
 }
@@ -37,8 +37,8 @@ impl<'a, M: Model + ?Sized> Model for &'a M {
         (**self).entry_strategy()
     }
 
-    fn exit_strategies(&self, order: &Order) -> Vec<Strategy> {
-        (**self).exit_strategies(order)
+    fn exit_strategies(&self, entry_order: &Order) -> Vec<Strategy> {
+        (**self).exit_strategies(entry_order)
     }
 
 }

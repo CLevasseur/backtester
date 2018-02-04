@@ -11,8 +11,8 @@ use backtester::model::{Model, ModelId};
 use backtester::strategy::Strategy;
 use backtester::signal::detector::{Once, Always};
 use backtester::direction::Direction;
-use backtester::order::{Order, OrderStatus, OrderBuilder, OrderKind};
-use backtester::order::policy::{MarketOrderPolicy, SimpleOrderPolicy};
+use backtester::order::{Order, OrderStatus, OrderKind};
+use backtester::order::policy::SimpleOrderPolicy;
 use backtester::symbol::SymbolId;
 use backtester::util::record_parser::RecordParser;
 use backtester::util::{get_order_pairs, write_order_pairs_to_csv};
@@ -31,40 +31,36 @@ impl Model for OrderEveryCandle {
     fn entry_strategy(&self) -> Strategy {
         Strategy::new(
             Box::new(Always::new(self.symbol_id.clone(), Direction::Long)),
-            Box::new(MarketOrderPolicy::new())
+            Box::new(SimpleOrderPolicy::new(OrderKind::MarketOrder))
         )
     }
 
-    fn exit_strategies(&self, order: &Order) -> Vec<Strategy> {
-        if let &OrderStatus::Filled(ref execution) = order.status() {
-            let timeout_strategy = Strategy::new(
-                Box::new(Once::new(self.symbol_id.clone(), Direction::Short)),
-                Box::new(SimpleOrderPolicy::new(
-                    OrderBuilder::unallocated(
-                        OrderKind::MarketOrder,
-                        self.symbol_id.clone(),
-                        Direction::Short
-                    )
-                        .set_active_after(execution.datetime().clone() + time::Duration::minutes(120))
-                        .set_oca(order.id().clone())
-                ))
-            );
+    fn exit_strategies(&self, entry_order: &Order) -> Vec<Strategy> {
+        let execution = entry_order.execution().expect("Entry order not executed");
 
-            let stop_loss_strategy = Strategy::new(
-                Box::new(Once::new(self.symbol_id.clone(), Direction::Short)),
-                Box::new(SimpleOrderPolicy::new(
-                    OrderBuilder::unallocated(
-                        OrderKind::StopOrder(execution.price() - 0.0005),
-                        self.symbol_id.clone(),
-                        Direction::Short
-                    ).set_oca(order.id().clone())
-                ))
-            );
+        let stop_loss_strategy = Strategy::new(
+            Box::new(Once::new(self.symbol_id.clone(), Direction::Short)),
+            Box::new(SimpleOrderPolicy::new(OrderKind::StopOrder(execution.price() - 0.0005))
+                .set_oca(Some(entry_order.id().clone()))
+            )
+        );
 
-            return vec![timeout_strategy, stop_loss_strategy]
-        }
+        let timeout_strategy = Strategy::new(
+            Box::new(Once::new(self.symbol_id.clone(), Direction::Short)),
+            Box::new(SimpleOrderPolicy::new(OrderKind::MarketOrder)
+                .set_active_after(Some(execution.datetime().clone() + time::Duration::minutes(120)))
+                .set_oca(Some(entry_order.id().clone()))
+            )
+        );
 
-        panic!("Entry order not executed: {:#?}", order)
+        let take_profit_strategy = Strategy::new(
+            Box::new(Once::new(self.symbol_id.clone(), Direction::Short)),
+            Box::new(SimpleOrderPolicy::new(OrderKind::LimitOrder(execution.price() + 0.0005))
+                .set_oca(Some(entry_order.id().clone()))
+            )
+        );
+
+        return vec![stop_loss_strategy, timeout_strategy, take_profit_strategy]
     }
 
 }

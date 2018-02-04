@@ -4,7 +4,7 @@ use self::chrono::prelude::{DateTime, Utc};
 use std::io;
 use std::error::Error;
 use util::OrderPair;
-use order::{Order, OrderKind, OrderStatus};
+use order::{Order, OrderKind, OrderStatus, OcaGroup};
 use execution::Execution;
 use direction::Direction;
 
@@ -26,6 +26,13 @@ fn direction_to_str(direction: &Direction) -> String {
 fn active_datetime_to_str(active_datetime: &Option<DateTime<Utc>>) -> String {
     match *active_datetime {
         Some(datetime) => datetime.to_string(),
+        None => String::from("None")
+    }
+}
+
+fn oca_to_str(oca: &Option<OcaGroup>) -> String {
+    match *oca {
+        Some(ref o) => o.to_string(),
         None => String::from("None")
     }
 }
@@ -86,7 +93,7 @@ pub fn write_order_pairs_to_csv<W>(writer: &mut csv::Writer<W>, order_pairs: &Ve
             active_datetime_to_str(order_pair.exit_order.active_until()),
             active_datetime_to_str(order_pair.exit_order.active_after()),
             direction_to_str(order_pair.exit_order.direction()),
-            format!("{:?}", order_pair.exit_order.oca()),
+            oca_to_str(order_pair.exit_order.oca()),
             order_pair.exit_order.symbol_id().clone(),
             exit_execution.price().to_string().clone(),
             exit_execution.datetime().to_string().clone(),

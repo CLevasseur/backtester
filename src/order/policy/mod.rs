@@ -3,8 +3,6 @@ use order::OrderBuilder;
 
 mod market_order_policy;
 pub use order::policy::market_order_policy::MarketOrderPolicy;
-mod stop_order_policy;
-pub use order::policy::stop_order_policy::StopOrderPolicy;
 mod simple_order_policy;
 pub use order::policy::simple_order_policy::SimpleOrderPolicy;
 
