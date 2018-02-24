@@ -1,5 +1,6 @@
 #[macro_use]
 extern crate serde_derive;
+extern crate ta_lib_wrapper;
 
 pub mod ohlcv;
 pub mod symbol;
