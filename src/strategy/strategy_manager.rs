@@ -40,7 +40,7 @@ impl StrategyManager {
     }
 
     /// Create a strategy collection with entry strategies from given models
-    pub fn initialize_strategy_collection<'model>(&self, models: &'model Vec<Box<Model>>)
+    pub fn initialize_strategy_collection<'model>(&self, models: &'model Vec<Box<Model + 'model>>)
         -> StrategyCollection<'model>
     {
         let mut strategy_collection = StrategyCollection::new();

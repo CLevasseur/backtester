@@ -11,7 +11,7 @@ use backtester::model::{Model, ModelId};
 use backtester::strategy::Strategy;
 use backtester::signal::detector::{Once, Always};
 use backtester::direction::Direction;
-use backtester::order::{Order, OrderStatus, OrderKind};
+use backtester::order::{Order, OrderKind};
 use backtester::order::policy::SimpleOrderPolicy;
 use backtester::symbol::SymbolId;
 use backtester::util::record_parser::RecordParser;

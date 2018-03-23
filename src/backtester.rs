@@ -31,7 +31,7 @@ impl Backtester {
         }
     }
 
-    pub fn run<'a, I>(&self, models: &'a Vec<Box<Model>>, ohlcv: I) -> Result<(Portfolio, StrategyCollection<'a>), BacktesterError>
+    pub fn run<'a, I>(&self, models: &'a Vec<Box<Model + 'a>>, ohlcv: I) -> Result<(Portfolio, StrategyCollection<'a>), BacktesterError>
         where I: Iterator<Item=Ohlcv>
     {
         let mut portfolio = Portfolio::new();
